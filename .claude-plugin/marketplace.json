@@ -1,0 +1,14 @@
+{
+  "name": "gilbert9172",
+  "owner": {
+    "name": "Gilbert",
+    "url": "https://github.com/Gilbert9172"
+  },
+  "plugins": [
+    {
+      "name": "handoff",
+      "source": "./",
+      "description": "세션 간 작업 인계 플러그인 — 세션이 끊겨도 작업 맥락을 이어줍니다."
+    }
+  ]
+}
