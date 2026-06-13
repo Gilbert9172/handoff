@@ -1,7 +1,7 @@
-# handoff — Session Continuity Plugin for Claude Code
+# handoff
 
-A Claude Code plugin that keeps your work context alive across sessions.
-It captures "what you were trying to do, how far you got, and what to do next" as per-project personal notes — so the next conversation picks up exactly where you left off.
+A Claude Code plugin that keeps you from **losing your place as you switch between tasks**.
+It captures "what you were trying to do, how far you got, and what to do next" as a per-task note — so whichever task you switch back to, you pick up right where you left off.
 
 > This plugin is installed via the [Gilbert9172/handoff](https://github.com/Gilbert9172/handoff) marketplace. Follow the steps below.
 
@@ -9,9 +9,23 @@ It captures "what you were trying to do, how far you got, and what to do next" a
 
 ## Why use it
 
-- When a long conversation gets cut off or you return to a task days later, **you don't have to re-explain everything from scratch.**
-- Logging "approaches that already failed" means the next session (or the next person) **won't repeat the same dead ends.**
-- Notes are saved to your **home directory**, not the repository — no commit noise, no review overhead.
+- **Switch tasks and get back in fast** — each task keeps its own note, so `list` shows what's where at a glance and `resume` summarizes the Goal, What Worked, and Next Steps — dropping you back at your stopping point **without re-reading the code.**
+- **Never repeat the same failure** — logging "approaches that already failed" means the next session (or the next person) **won't repeat the same dead ends.**
+- **Cross session boundaries** — when a long conversation gets cut off or you return days later, **you don't have to re-explain everything from scratch.**
+- **Personal notes, no commit worries** — notes live in your **home directory**, not the repository — no commit noise, no review overhead.
+
+### How the parallelism works
+
+The key is **one note per task**. Instead of cramming everything into a single `HANDOFF.md`, each task gets its own slugged file:
+
+```
+~/.claude/projects/<project>/handoffs/
+├── HANDOFF-auction-state-machine.md
+├── HANDOFF-batch-php-migration.md
+└── HANDOFF-settlement-interface.md
+```
+
+So tasks never bleed into each other, and `/handoff:list` reads these files back one row at a time — **"what's where" becomes your dashboard.** Adding a task just adds one more file; existing notes are never touched.
 
 ---
 
@@ -136,68 +150,66 @@ Handoffs are saved to your home directory, not the repository — the same locat
 
 `<project-slug>` is the git root path with `/` replaced by `-` (falls back to the current directory if not in a git repo). Because it's based on the git root, handoffs are found correctly even when a session starts from a subdirectory.
 
-Example — for a repo at `/Users/<you>/project/handoff`:
+Example — for a repo at `/Users/<you>/project/handoff`, the path resolves to:
 
 ```
-~/.claude/projects/-Users-<you>-project-handoff/handoffs/
-├── HANDOFF-auth-jwt-migration.md
-└── HANDOFF-pages-ci-setup.md
+~/.claude/projects/-Users-<you>-project-handoff/handoffs/HANDOFF-batch-php-migration.md
 ```
 
-You can open and edit these files directly in your editor if needed.
+(Per-task notes pile up side by side in that folder — see [How the parallelism works](#how-the-parallelism-works) above.) You can open and edit these files directly in your editor if needed.
 
 ---
 
 ## Example workflow
 
-**First session — work, then wrap up**
+**Several tasks in flight — see what's where at a glance**
 
 ```shell
-/handoff:save auth-migration
+/handoff:list
+```
+
+| Slug | Updated | Goal |
+|------|---------|------|
+| auction-state-machine | 2026-06-11 | Design the won→payment state transitions |
+| batch-php-migration | 2026-06-13 | Migrate the legacy PHP batch jobs to the new runtime |
+| settlement-interface | 2026-06-10 | Draft the settlement interface |
+
+```shell
+/handoff:resume batch-php-migration   # pick this one up today
+```
+
+`resume` summarizes that task's Goal, What Worked & Next Steps, skips the approaches in **What Didn't Work**, and continues right from where you stopped.
+
+**One task's lifecycle — from save to cleanup**
+
+```shell
+/handoff:save batch-php-migration   # record progress before stepping away
 ```
 ```markdown
 # Goal
-Migrate session-based auth to JWT
+Migrate the legacy PHP batch jobs to the new runtime
 
 # Current Progress
-- Added JWT fields to user model
-- Implemented token generation and verification functions
+- Settled the APP_ENV injection approach, moved the batch entrypoint
 
 # What Worked
-- Adopted the jsonwebtoken library
+- Inject env vars at the container level (removes code-side branching)
 
 # What Didn't Work
-- RSA keys were too operationally complex → switched to HS256
+- Bundling a .env file → staging/prod value conflicts, abandoned
 
 # Next Steps
-- Write migration script to move existing sessions to JWT
-- Update login/logout endpoints and run tests
+- Map IAM permissions, then verify S3 access paths
+- Wire up retry/alert paths for batch failures
 ```
-
-**Next session — pick up right where you left off**
 
 ```shell
-/handoff:list                    # confirm auth-migration is there
-/handoff:resume auth-migration   # review Goal & Next Steps, then continue
+/handoff:resume batch-php-migration   # continue in the next session
 # ... do the work ...
-/handoff:save auth-migration     # update progress for the next session
+/handoff:save batch-php-migration     # update progress
 # ... once done ...
-/handoff:delete auth-migration   # clean up
+/handoff:delete batch-php-migration   # clean up
 ```
-
----
-
-## Best practices
-
-**Do this**
-- **Keep Goal clear** — the next session should understand the target at a glance.
-- **Make Next Steps concrete** — "do more testing" ❌ → "write POST cases in `tests/auth.test.ts`" ✅
-- **Log failures with reasons** — What Didn't Work is a time-saver for future sessions.
-- **Clean up when done** — use `/handoff:delete` to keep the list tidy.
-
-**Avoid**
-- Progress entries so short the next session has to re-read the code.
-- Letting old information linger — Progress and Next Steps should always reflect the current state.
 
 ---
 
@@ -254,14 +266,8 @@ This plugin started from the [handoff skill in ykdojo/claude-code-tips](https://
 | Distribution | Copy-paste | Marketplace register & install |
 | Merge | "preserve existing" (one line) | Per-section rules (overwrite vs. accumulate) |
 
-Three structural problems solved:
+*Why* those structural differences (per-task files · home storage · git-root scoping) matter is covered above in [How the parallelism works](#how-the-parallelism-works) · [Where notes are stored](#where-notes-are-stored). On top of that, three things the original lacked:
 
-- **Single file breaks with parallel tasks.** Multiple tasks collide in one file. Per-slug files eliminate the ambiguity between "the default file," "a single task," and "an unnamed task."
-- **Repo-root storage pollutes commits.** `HANDOFF.md` gets picked up by git, creating review friction and merge conflicts. Moving to the home directory makes the "personal session note" nature explicit.
-- **cwd scoping loses notes in subdirectories.** Git-root slugging means a session opened from any subdirectory — including in a monorepo — still finds the right handoffs.
-
-What was added that the original lacked:
-
-- **resume** — reads the note and summarizes Goal · Next Steps before acting, so you confirm direction before execution. Approaches in **What Didn't Work** are never retried.
+- **resume** — reads the note, summarizes Goal · What Worked · Next Steps, then *stops before acting* for your confirmation (resuming loads context; it isn't sign-off on the plan).
 - **delete** — closes the lifecycle so notes don't pile up indefinitely.
-- **No index** — `scan` rebuilds the list from disk every time, eliminating the class of sync bugs where an index and the actual files diverge.
+- **Index-less** — `scan` rebuilds the list from disk every time, eliminating the class of sync bugs where an index and the actual files diverge.

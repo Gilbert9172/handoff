@@ -1,6 +1,6 @@
 # handoff — Quick Start (5 minutes)
 
-A plugin that keeps your work context alive across Claude Code sessions. For the full reference, see [README.en.md](./README.en.md).
+A plugin that keeps you from **losing your place as you switch between tasks**. For the full reference, see [README.en.md](./README.en.md).
 
 ---
 
@@ -37,16 +37,21 @@ A plugin that keeps your work context alive across Claude Code sessions. For the
 
 ## 3️⃣ Daily pattern
 
+🌅 **Starting a session** — run `/handoff:list` to see what's where at a glance.
+
+| Slug | Updated | Goal |
+|------|---------|------|
+| auction-state-machine | 2026-06-11 | Design the won→payment state transitions |
+| batch-php-migration | 2026-06-13 | Migrate the legacy PHP batch jobs to the new runtime |
+
 ```shell
-# 🌅 Starting a session
-/handoff:list              # see what's in progress
-/handoff:resume auth       # resume by slug
+/handoff:resume batch-php-migration   # pick this one up today
 
 # 🌙 Ending a session
 /handoff:save              # without a title — auto-updates the matching note or creates a new one
 
 # ✨ When a task is done
-/handoff:delete auth       # clean up
+/handoff:delete batch-php-migration   # clean up
 ```
 
 ---
@@ -109,7 +114,7 @@ A. Run `/reload-plugins`. If they're still missing, check with `/plugin list` an
 
 - **Make Next Steps concrete.** "Do more testing" is vague; "`tests/auth.test.ts`, POST cases" tells your future self exactly where to start.
 - **Log failures with reasons.** What Didn't Work is what prevents you from hitting the same wall twice.
-- **Separate parallel tasks.** `/handoff:save frontend-refactor` and `/handoff:save backend-api` keep things clean when you're juggling multiple tracks.
+- **Separate parallel tasks.** `/handoff:save auction-state-machine` and `/handoff:save batch-php-migration` keep things clean when you're juggling multiple tracks.
 
 ---
 

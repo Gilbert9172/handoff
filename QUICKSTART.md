@@ -1,6 +1,6 @@
 # handoff — 빠른 시작 (5분)
 
-세션이 끊겨도 작업 맥락을 이어주는 플러그인입니다. 전체 설명은 [README.md](./README.md) 참고.
+여러 작업을 오가도 **어디까지 했는지 놓치지 않게** 해주는 플러그인입니다. 전체 설명은 [README.md](./README.md) 참고.
 
 ---
 
@@ -39,16 +39,21 @@
 
 ## 3️⃣ 일일 패턴
 
+🌅 **시작할 때** — `/handoff:list`로 어떤 작업이 어디까지 왔는지 한눈에 봅니다.
+
+| Slug | Updated | Goal |
+|------|---------|------|
+| auction-state-machine | 2026-06-11 | 낙찰→납부 상태 전이 설계 |
+| batch-php-migration | 2026-06-13 | 레거시 PHP 배치를 신규 런타임으로 이관 |
+
 ```shell
-# 🌅 시작할 때
-/handoff:list              # 진행 중인 작업 확인
-/handoff:resume auth       # 슬러그로 재개
+/handoff:resume batch-php-migration   # 오늘은 이거 이어서
 
 # 🌙 끝낼 때
 /handoff:save              # 제목 없이 저장하면 알아서 같은 노트 갱신/새 노트 생성
 
 # ✨ 완료되면
-/handoff:delete auth       # 정리
+/handoff:delete batch-php-migration   # 정리
 ```
 
 ---
@@ -111,7 +116,7 @@ A. `/reload-plugins` → 그래도 없으면 `/plugin list`로 설치 여부, `/
 
 - **Next Steps는 구체적으로.** "테스트 더 하기"보다 "`tests/auth.test.ts`의 POST 케이스 작성"처럼 — 미래의 나(또는 동료)가 바로 시작할 수 있게.
 - **실패는 이유까지.** What Didn't Work가 다음 세션의 삽질을 막아줍니다.
-- **병렬 작업은 노트를 나눠서.** `/handoff:save frontend-refactor`, `/handoff:save backend-api`처럼 작업별로.
+- **병렬 작업은 노트를 나눠서.** `/handoff:save auction-state-machine`, `/handoff:save batch-php-migration`처럼 작업별로.
 
 ---
 
