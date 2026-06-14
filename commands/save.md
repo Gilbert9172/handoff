@@ -57,7 +57,8 @@ When updating an existing file, merge rather than blindly overwrite:
 
 ## After saving
 
-Tell the user two things, so the next conversation needs no remembered paths:
+Tell the user three things, so the next conversation needs no remembered paths. In every case below, substitute the **actual** values — never print the literal placeholders `<slug>` or `$HOME`; replace them with the resolved slug and expanded path:
 
 1. The **full, expanded** file path (with `$HOME` and the slug resolved).
-2. The resume command: `/handoff:resume <slug>`.
+2. The resume command, with the real slug filled in — e.g. `/handoff:resume auth-jwt-migration`, not `/handoff:resume <slug>`.
+3. A note that continuing is best done in a **fresh session**: handoff exists precisely so an agent with clean context can pick up the work — so if they want to keep going, they should start a new session and run the resume command there rather than continuing in this one. Write it in the user's language with the real slug already substituted, e.g. (for slug `auth-jwt-migration`): "save 완료 후 이어서 진행하실 경우, 새로운 세션에서 `/handoff:resume auth-jwt-migration` 로 이어서 해주세요."
