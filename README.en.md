@@ -134,8 +134,6 @@ Thresholds are configurable via environment variables:
 | `HANDOFF_BAND_3` | `75` | 🔴 stage 3 usage (%) |
 | `HANDOFF_CONTEXT_LIMIT` | `200000` | Context window size (tokens) — adjust for 1M-context models |
 
-Verification logs from live testing are in [`captures/live-test.log`](./captures/live-test.log).
-
 ---
 
 ## Handoff document structure

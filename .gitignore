@@ -4,3 +4,6 @@
 # IDE
 .idea/
 .vscode/
+
+# 로컬 검증 로그·캡처
+captures/

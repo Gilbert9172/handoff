@@ -134,8 +134,6 @@
 | `HANDOFF_BAND_3` | `75` | 🔴 3단계 사용률(%) |
 | `HANDOFF_CONTEXT_LIMIT` | `200000` | 컨텍스트 윈도우 크기(토큰) — 1M 컨텍스트 모델 사용 시 조정 |
 
-실제 동작 검증 로그는 [`captures/live-test.log`](./captures/live-test.log)에 있습니다.
-
 > 훅 변경은 플러그인 업데이트(`/plugin marketplace update gilbert9172`) 후 **새 세션**부터 적용됩니다.
 
 ---
