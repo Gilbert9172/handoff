@@ -111,6 +111,33 @@ Displays all handoffs for this project in a table — **Slug · Updated · Goal*
 
 ---
 
+## Automatic save reminders (context hook)
+
+So `/handoff:save` doesn't rely on memory alone, installing the plugin also registers a **UserPromptSubmit hook**. On every message it reads the **actual context usage** from the session transcript and signals in three stages:
+
+| Tag | Threshold (default) | Behavior |
+|-----|---------------------|----------|
+| 🟢 | **35%** | Casually notes that now is a good moment to save |
+| 🟠 | **50%** | Clearly recommends running `/handoff:save` |
+| 🔴 | **75%** | Warns that context is running low and **asks whether to save once more** |
+
+- **Nothing is saved automatically.** All three stages only suggest or ask — an actual save happens only when you run `/handoff:save`.
+- Each stage fires **once per session**; if several stages are crossed at once, only the highest one fires.
+- Works the same **even with auto-compact turned off** — you get a chance to save before context runs out and the working state is lost.
+
+Thresholds are configurable via environment variables:
+
+| Variable | Default | Meaning |
+|----------|---------|---------|
+| `HANDOFF_BAND_1` | `35` | 🟢 stage 1 usage (%) |
+| `HANDOFF_BAND_2` | `50` | 🟠 stage 2 usage (%) |
+| `HANDOFF_BAND_3` | `75` | 🔴 stage 3 usage (%) |
+| `HANDOFF_CONTEXT_LIMIT` | `200000` | Context window size (tokens) — adjust for 1M-context models |
+
+Verification logs from live testing are in [`captures/live-test.log`](./captures/live-test.log).
+
+---
+
 ## Handoff document structure
 
 Each note has five sections:

@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh\" context-check",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
