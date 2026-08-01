@@ -33,7 +33,7 @@ case "${1:-}" in
     # session (the marker file records the highest band already fired):
     #   band 1 (default 35%) -> green  tag, gentle suggestion
     #   band 2 (default 50%) -> orange tag, firmer suggestion
-    #   band 3 (default 75%) -> red    tag, ask whether to save once more
+    #   band 3 (default 75%) -> red    tag, strongest suggestion
     # Every band only ever SUGGESTS — nothing is saved without the user asking.
     input=$(cat 2>/dev/null || true)
     transcript=$(printf '%s' "$input" | sed -n 's/.*"transcript_path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
@@ -46,7 +46,10 @@ case "${1:-}" in
     band3="${HANDOFF_BAND_3:-75}"
 
     # Context size = the last recorded usage entry: input + cache tokens.
-    used=$(awk '
+    # Only the LAST entry matters, so read the tail first; fall back to a full
+    # scan on the rare occasion the tail holds no usage line at all (e.g. the
+    # last 200 lines are all long tool_result content with no usage field).
+    usage_awk='
       /"input_tokens"/ {
         i=r=c=0
         if (match($0, /"input_tokens":[0-9]+/))                i=substr($0, RSTART+15, RLENGTH-15)
@@ -54,7 +57,9 @@ case "${1:-}" in
         if (match($0, /"cache_creation_input_tokens":[0-9]+/)) c=substr($0, RSTART+30, RLENGTH-30)
         last=i+r+c
       }
-      END { print last+0 }' "$transcript")
+      END { print last+0 }'
+    used=$(tail -n 200 "$transcript" | awk "$usage_awk")
+    [ "$used" -le 0 ] && used=$(awk "$usage_awk" "$transcript")
     if [ "$used" -le 0 ]; then exit 0; fi
 
     pct=$((used * 100 / limit))
@@ -72,12 +77,15 @@ case "${1:-}" in
     printf '%s' "$band" > "$marker"
 
     case "$band" in
-      1) tag='🟢'; ask="briefly mention that now is a good moment to run /handoff:save, in one short sentence" ;;
-      2) tag='🟠'; ask="recommend running /handoff:save fairly clearly — context is half gone — in one or two short sentences" ;;
-      3) tag='🔴'; ask="warn that context is running low and ASK the user whether to save the handoff once more (a yes/no question, e.g. \"한 번 더 저장하시겠습니까?\"). Do NOT save anything yourself — wait for the user to answer" ;;
+      1) tag='🟢'; suffix='/handoff:save 사용을 추천합니다'
+         ask="briefly mention that now is a good moment to run /handoff:save, in one short sentence" ;;
+      2) tag='🟠'; suffix='/handoff:save 사용을 권장합니다'
+         ask="recommend running /handoff:save fairly clearly — context is half gone — in one or two short sentences" ;;
+      3) tag='🔴'; suffix='/handoff:save 를 사용하여 컨텍스트를 관리하세요'
+         ask="clearly advise that context is running low and that using /handoff:save now is strongly recommended to manage context, in one short sentence. Do NOT phrase it as a yes/no question and do NOT save anything yourself" ;;
     esac
 
-    banner="$tag [handoff] 컨텍스트 ${pct}% 사용 중 (${used}/${limit} 토큰) — /handoff:save 권장"
+    banner="$tag [handoff] 컨텍스트 ${pct}% 사용 중 (${used}/${limit} 토큰) — ${suffix}"
     context="[handoff plugin] $tag Context usage is at ~${pct}% (${used} of ${limit} tokens). Before answering the user's request, prefix your reply with the tag $tag and $ask. Keep it to one line, write it in the user's language, and never claim a handoff was saved unless you actually saved one. Then handle the request as normal. This notice fires once per band per session."
 
     printf '{"systemMessage":"%s","hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"%s"}}\n' \

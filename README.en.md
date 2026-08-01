@@ -117,11 +117,11 @@ So `/handoff:save` doesn't rely on memory alone, installing the plugin also regi
 
 | Tag | Threshold (default) | Behavior |
 |-----|---------------------|----------|
-| 🟢 | **35%** | Casually notes that now is a good moment to save |
+| 🟢 | **35%** | Gently recommends using `/handoff:save` |
 | 🟠 | **50%** | Clearly recommends running `/handoff:save` |
-| 🔴 | **75%** | Warns that context is running low and **asks whether to save once more** |
+| 🔴 | **75%** | Warns that context is running low and strongly advises using `/handoff:save` to manage it |
 
-- **Nothing is saved automatically.** All three stages only suggest or ask — an actual save happens only when you run `/handoff:save`.
+- **Nothing is saved automatically.** All three stages only suggest — an actual save happens only when you run `/handoff:save`.
 - Each stage fires **once per session**; if several stages are crossed at once, only the highest one fires.
 - Works the same **even with auto-compact turned off** — you get a chance to save before context runs out and the working state is lost.
 
