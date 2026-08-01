@@ -40,7 +40,7 @@ case "${1:-}" in
     session=$(printf '%s' "$input" | sed -n 's/.*"session_id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
     if [ -z "$transcript" ] || [ ! -f "$transcript" ]; then exit 0; fi
 
-    limit="${HANDOFF_CONTEXT_LIMIT:-200000}"
+    limit="${HANDOFF_CONTEXT_LIMIT:-1000000}"
     band1="${HANDOFF_BAND_1:-35}"
     band2="${HANDOFF_BAND_2:-50}"
     band3="${HANDOFF_BAND_3:-75}"
