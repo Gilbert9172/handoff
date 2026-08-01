@@ -132,7 +132,9 @@ Thresholds are configurable via environment variables:
 | `HANDOFF_BAND_1` | `35` | 🟢 stage 1 usage (%) |
 | `HANDOFF_BAND_2` | `50` | 🟠 stage 2 usage (%) |
 | `HANDOFF_BAND_3` | `75` | 🔴 stage 3 usage (%) |
-| `HANDOFF_CONTEXT_LIMIT` | `200000` | Context window size (tokens) — adjust for 1M-context models |
+| `HANDOFF_CONTEXT_LIMIT` | `200000` | Context window size of this session (tokens) |
+
+> The `HANDOFF_CONTEXT_LIMIT` default of 200,000 matches a **standard Claude Code session**, so you normally leave it alone. The hook can only read how many tokens have been used — it can't know the session's actual limit — so it treats this value as a fixed assumption. On a 1M-context session it would read the 15% mark as 75% and fire 🔴 far too early, so set `HANDOFF_CONTEXT_LIMIT=1000000` in that case.
 
 ---
 

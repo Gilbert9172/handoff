@@ -132,7 +132,9 @@
 | `HANDOFF_BAND_1` | `35` | 🟢 1단계 사용률(%) |
 | `HANDOFF_BAND_2` | `50` | 🟠 2단계 사용률(%) |
 | `HANDOFF_BAND_3` | `75` | 🔴 3단계 사용률(%) |
-| `HANDOFF_CONTEXT_LIMIT` | `200000` | 컨텍스트 윈도우 크기(토큰) — 1M 컨텍스트 모델 사용 시 조정 |
+| `HANDOFF_CONTEXT_LIMIT` | `200000` | 이 세션의 컨텍스트 윈도우 크기(토큰) |
+
+> `HANDOFF_CONTEXT_LIMIT`의 기본값 200,000은 **일반적인 Claude Code 세션 기준**이라 보통은 그대로 두면 됩니다. 훅은 사용한 토큰 수만 읽을 수 있고 세션의 실제 한도는 알 수 없어서, 이 값을 고정 가정으로 씁니다. 1M 컨텍스트 세션을 쓴다면 실제 15%인 지점을 75%로 계산해 🔴이 너무 일찍 뜨므로, 그때는 `HANDOFF_CONTEXT_LIMIT=1000000`으로 맞춰주세요.
 
 > 훅 변경은 플러그인 업데이트(`/plugin marketplace update gilbert9172`) 후 **새 세션**부터 적용됩니다.
 
