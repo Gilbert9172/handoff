@@ -40,26 +40,79 @@ case "${1:-}" in
     session=$(printf '%s' "$input" | sed -n 's/.*"session_id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
     if [ -z "$transcript" ] || [ ! -f "$transcript" ]; then exit 0; fi
 
-    limit="${HANDOFF_CONTEXT_LIMIT:-1000000}"
     band1="${HANDOFF_BAND_1:-35}"
     band2="${HANDOFF_BAND_2:-50}"
     band3="${HANDOFF_BAND_3:-75}"
 
-    # Context size = the last recorded usage entry: input + cache tokens.
-    # Only the LAST entry matters, so read the tail first; fall back to a full
-    # scan on the rare occasion the tail holds no usage line at all (e.g. the
-    # last 200 lines are all long tool_result content with no usage field).
-    usage_awk='
-      /"input_tokens"/ {
-        i=r=c=0
-        if (match($0, /"input_tokens":[0-9]+/))                i=substr($0, RSTART+15, RLENGTH-15)
-        if (match($0, /"cache_read_input_tokens":[0-9]+/))     r=substr($0, RSTART+26, RLENGTH-26)
-        if (match($0, /"cache_creation_input_tokens":[0-9]+/)) c=substr($0, RSTART+30, RLENGTH-30)
-        last=i+r+c
-      }
-      END { print last+0 }'
-    used=$(tail -n 200 "$transcript" | awk "$usage_awk")
-    [ "$used" -le 0 ] && used=$(awk "$usage_awk" "$transcript")
+    # Claude transcripts do not expose a context-window field, but assistant
+    # messages do record the model. Keep the exceptional 1M models explicit;
+    # every other Claude model safely defaults to the standard 200K window.
+    # HANDOFF_CONTEXT_LIMIT remains an escape hatch for custom deployments.
+    claude_model_context_map='claude-fable-5 1000000
+claude-mythos-5 1000000
+claude-opus-5 1000000
+claude-sonnet-5 1000000
+claude-opus-4-8 1000000
+claude-opus-4-7 1000000
+claude-opus-4-6 1000000
+claude-sonnet-4-6 1000000'
+
+    # Context size = the last recorded usage entry. Claude and Codex transcripts use
+    # different shapes for the same underlying value — see §9.4 of the design doc:
+    #   Claude: input_tokens EXCLUDES cache, so cache_read + cache_creation must be added.
+    #   Codex:  last_token_usage.input_tokens ALREADY INCLUDES cache — adding
+    #           cached_input_tokens again would double-count. Do not "fix" this later.
+    # Codex transcripts carry model_context_window (Claude's never do), so that single
+    # field is what distinguishes the two formats below.
+    tail_chunk=$(tail -n 200 "$transcript" 2>/dev/null || true)
+
+    if printf '%s' "$tail_chunk" | grep -q '"model_context_window"'; then
+      codex_chunk="$tail_chunk"
+    elif grep -q '"model_context_window"' "$transcript" 2>/dev/null; then
+      codex_chunk=$(cat "$transcript")
+    else
+      codex_chunk=""
+    fi
+
+    if [ -n "$codex_chunk" ]; then
+      last_line=$(printf '%s\n' "$codex_chunk" | grep '"type":"token_count"' | tail -n 1)
+      inner=$(printf '%s' "$last_line" | sed -n 's/.*"last_token_usage":{\([^}]*\)}.*/\1/p')
+      used=$(printf '%s' "$inner" | sed -n 's/.*"input_tokens":\([0-9]*\).*/\1/p')
+      codex_limit=$(printf '%s' "$last_line" | sed -n 's/.*"model_context_window":\([0-9]*\).*/\1/p')
+      limit="${codex_limit:-${HANDOFF_CONTEXT_LIMIT:-200000}}"
+    else
+      model_awk='
+        {
+          # Match message.model structurally. Quotes embedded in message content
+          # are escaped, so they cannot masquerade as this top-level field.
+          if (match($0, /"message"[[:space:]]*:[[:space:]]*\{[[:space:]]*"model"[[:space:]]*:[[:space:]]*"[^"]*"/)) {
+            value=substr($0, RSTART, RLENGTH)
+            sub(/^.*"model"[[:space:]]*:[[:space:]]*"/, "", value)
+            sub(/"$/, "", value)
+            model=value
+          }
+        }
+        END { print model }'
+      claude_model=$(printf '%s\n' "$tail_chunk" | awk "$model_awk")
+      [ -n "$claude_model" ] || claude_model=$(awk "$model_awk" "$transcript")
+      detected_limit=$(printf '%s\n' "$claude_model_context_map" | awk -v model="$claude_model" \
+        '$1 == model { print $2; exit }')
+      limit="${HANDOFF_CONTEXT_LIMIT:-${detected_limit:-200000}}"
+
+      usage_awk='
+        /"input_tokens"/ {
+          i=r=c=0
+          if (match($0, /"input_tokens":[0-9]+/))                i=substr($0, RSTART+15, RLENGTH-15)
+          if (match($0, /"cache_read_input_tokens":[0-9]+/))     r=substr($0, RSTART+26, RLENGTH-26)
+          if (match($0, /"cache_creation_input_tokens":[0-9]+/)) c=substr($0, RSTART+30, RLENGTH-30)
+          last=i+r+c
+        }
+        END { print last+0 }'
+      used=$(printf '%s\n' "$tail_chunk" | awk "$usage_awk")
+      [ "${used:-0}" -le 0 ] 2>/dev/null && used=$(awk "$usage_awk" "$transcript")
+    fi
+    [ -n "${used:-}" ] || used=0
+    case "$used" in ''|*[!0-9]*) used=0;; esac
     if [ "$used" -le 0 ]; then exit 0; fi
 
     pct=$((used * 100 / limit))

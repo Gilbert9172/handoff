@@ -132,9 +132,9 @@
 | `HANDOFF_BAND_1` | `35` | 🟢 1단계 사용률(%) |
 | `HANDOFF_BAND_2` | `50` | 🟠 2단계 사용률(%) |
 | `HANDOFF_BAND_3` | `75` | 🔴 3단계 사용률(%) |
-| `HANDOFF_CONTEXT_LIMIT` | `1000000` | 이 세션의 컨텍스트 윈도우 크기(토큰) |
+| `HANDOFF_CONTEXT_LIMIT` | 모델별 자동 감지 | 이 세션의 컨텍스트 윈도우 크기 override(토큰) |
 
-> `HANDOFF_CONTEXT_LIMIT`의 기본값은 1M 컨텍스트 세션 기준입니다. 훅은 사용한 토큰 수만 읽을 수 있고 세션의 실제 한도는 알 수 없어서, 이 값을 고정 가정으로 씁니다. 표준 200K 컨텍스트 세션을 쓴다면 이 값을 5배 크게 잡은 셈이라 밴드가 실제보다 훨씬 늦게(예: 실제 75%인 지점이 15%로 계산) 뜨므로, 그때는 `HANDOFF_CONTEXT_LIMIT=200000`으로 맞춰주세요.
+> Claude transcript의 assistant message에서 모델을 읽어 1M 모델은 1,000,000으로 계산하고, 그 외 모델은 200,000으로 계산합니다. Codex는 transcript의 `model_context_window` 값을 사용합니다. 자동 감지가 맞지 않는 custom deployment에서는 `HANDOFF_CONTEXT_LIMIT`로 직접 지정할 수 있습니다.
 
 > 훅 변경은 플러그인 업데이트(`/plugin marketplace update gilbert9172`) 후 **새 세션**부터 적용됩니다.
 

@@ -132,9 +132,9 @@ Thresholds are configurable via environment variables:
 | `HANDOFF_BAND_1` | `35` | 🟢 stage 1 usage (%) |
 | `HANDOFF_BAND_2` | `50` | 🟠 stage 2 usage (%) |
 | `HANDOFF_BAND_3` | `75` | 🔴 stage 3 usage (%) |
-| `HANDOFF_CONTEXT_LIMIT` | `1000000` | Context window size of this session (tokens) |
+| `HANDOFF_CONTEXT_LIMIT` | detected by model | Override for this session's context window size (tokens) |
 
-> The `HANDOFF_CONTEXT_LIMIT` default assumes a **1M-context session**. The hook can only read how many tokens have been used — it can't know the session's actual limit — so it treats this value as a fixed assumption. On a standard 200K-context session, that's 5x too large, so bands fire much later than they should (e.g. the true 75% mark reads as 15%); set `HANDOFF_CONTEXT_LIMIT=200000` in that case.
+> For Claude, the hook reads the model from assistant messages in the transcript, uses 1,000,000 for known 1M models, and uses 200,000 for every other model. For Codex, it uses the transcript's `model_context_window`. Set `HANDOFF_CONTEXT_LIMIT` explicitly only when automatic detection does not fit a custom deployment.
 
 ---
 
