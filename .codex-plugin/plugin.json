@@ -1,0 +1,21 @@
+{
+  "name": "handoff",
+  "version": "1.3.2",
+  "description": "세션 간 작업 인계 플러그인 — 세션이 끊겨도 \"무엇을 하려 했고, 어디까지 했고, 다음에 뭘 할지\"를 프로젝트별 노트로 이어줍니다.",
+  "author": {
+    "name": "Gilbert",
+    "url": "https://github.com/Gilbert9172"
+  },
+  "homepage": "https://github.com/Gilbert9172/handoff",
+  "repository": "https://github.com/Gilbert9172/handoff.git",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Handoff",
+    "shortDescription": "Save and resume work across sessions",
+    "longDescription": "세션이 끊겨도 목표, 진행 상태, 성공/실패한 접근, 다음 단계를 프로젝트별 handoff 문서로 이어줍니다.",
+    "developerName": "Gilbert",
+    "category": "Productivity",
+    "capabilities": ["Read", "Write"],
+    "defaultPrompt": "지금까지 한 작업을 handoff로 저장해줘."
+  }
+}
