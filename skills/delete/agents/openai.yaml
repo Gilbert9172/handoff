@@ -1,0 +1,3 @@
+interface:
+  display_name: "Delete handoff"
+  short_description: "Delete a handoff document that is no longer needed"

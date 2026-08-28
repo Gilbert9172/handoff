@@ -1,4 +1,5 @@
 ---
+name: delete
 description: Delete a handoff document that is no longer needed, e.g. when its task is finished or abandoned. Use when the user wants to clean up or remove a handoff.
 model: haiku
 effort: low

@@ -1,4 +1,5 @@
 ---
+name: save
 description: Write or update a handoff document so the next agent with fresh context can continue this work. Use when wrapping up a session, switching tasks, or asked to leave notes for a future conversation. Pass an optional title to target a specific handoff. Siblings — /handoff:list to see existing handoffs, /handoff:resume to continue from one, /handoff:delete to remove one.
 argument-hint: "[title]"
 allowed-tools:
@@ -7,7 +8,7 @@ allowed-tools:
 
 ## The handoff family
 
-This skill **writes** handoffs. Listing, resuming, and deleting are sibling skills in this plugin. If the argument here is `list`, `resume`, or `delete` (an old-style invocation), read and follow `${CLAUDE_PLUGIN_ROOT}/commands/<that-word>.md` instead.
+This skill **writes** handoffs. Listing, resuming, and deleting are sibling skills in this plugin. If the argument here is `list`, `resume`, or `delete` (an old-style invocation), read and follow `${CLAUDE_PLUGIN_ROOT}/skills/<that-word>/SKILL.md` instead.
 
 All four skills share one script, so paths and scans are computed identically everywhere:
 
@@ -54,6 +55,10 @@ When updating an existing file, merge rather than blindly overwrite:
 - **Current Progress** and **Next Steps** reflect the latest state — rewrite them.
 - **What Worked** and **What Didn't Work** accumulate — append new findings, never drop old ones.
 - **Goal** rarely changes — leave it unless the task itself has shifted.
+
+## If the write fails
+
+If the target path can't be written (permission denied, sandbox block, disk error), do not report success and do not fall back to a different path. State plainly that the write failed, then print the **full document you were about to save** directly in the conversation — every section, not a summary. `save` typically runs right as the user is about to end the session, so a silent failure here is data loss they won't discover until the next session starts empty-handed.
 
 ## After saving
 

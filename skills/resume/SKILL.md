@@ -1,4 +1,5 @@
 ---
+name: resume
 description: Resume work from a handoff document — read it and continue executing its Next Steps. Use at the start of a fresh conversation to pick up where a previous one left off, or whenever the user says to continue/resume an earlier task that has a handoff.
 argument-hint: "[title]"
 allowed-tools:
