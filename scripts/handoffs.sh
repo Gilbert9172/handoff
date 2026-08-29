@@ -1,20 +1,27 @@
 #!/bin/sh
 # Shared path/scan logic for the /handoff family of skills.
-# usage: handoffs.sh dir            -> print the project's handoff directory
-#        handoffs.sh scan           -> one line per handoff: slug<TAB>updated<TAB>first Goal paragraph
-#        handoffs.sh context-check  -> UserPromptSubmit hook: suggest /handoff:save when context usage is high
+# usage: handoffs.sh dir [legacy]           -> print the project's handoff directory
+#        handoffs.sh scan [legacy]          -> one line per handoff: slug<TAB>updated<TAB>first Goal paragraph
+#        handoffs.sh context-check          -> UserPromptSubmit hook: suggest /handoff:save when context usage is high
+# The optional "legacy" argument targets the pre-1.5 Claude-only storage path
+# (~/.claude/projects/<slug>/handoffs/) instead of the current host-neutral one
+# (~/.handoffs/<slug>/). Only the migrate skill passes it.
 set -eu
 
 root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 slug=$(printf '%s' "$root" | tr '/' '-')
 dir="$HOME/.handoffs/$slug"
+legacy_dir="$HOME/.claude/projects/$slug/handoffs"
+
+target="$dir"
+[ "${2:-}" = "legacy" ] && target="$legacy_dir"
 
 case "${1:-}" in
   dir)
-    printf '%s\n' "$dir"
+    printf '%s\n' "$target"
     ;;
   scan)
-    for f in "$dir"/HANDOFF-*.md; do
+    for f in "$target"/HANDOFF-*.md; do
       [ -e "$f" ] || continue
       s=$(basename "$f" .md); s=${s#HANDOFF-}
       updated=$(stat -c '%y' "$f" 2>/dev/null | cut -d' ' -f1)

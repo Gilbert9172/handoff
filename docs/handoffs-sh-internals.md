@@ -17,10 +17,14 @@
 
 | 서브커맨드 | 호출 지점 | 출력 | 종료 코드 |
 | --- | --- | --- | --- |
-| `dir` | `save`, `resume`, `delete` skill | handoff 디렉토리 절대경로 1줄 | 0 |
-| `scan` | `list`, `save`, `resume`, `delete` skill | handoff 1개당 TSV 1줄 | 0 |
+| `dir` | `save`, `resume`, `delete`, `migrate` skill | handoff 디렉토리 절대경로 1줄 | 0 |
+| `dir legacy` | `migrate` skill | 옛(`~/.claude/projects/...`) handoff 디렉토리 절대경로 1줄 | 0 |
+| `scan` | `list`, `save`, `resume`, `delete`, `migrate` skill | handoff 1개당 TSV 1줄 | 0 |
+| `scan legacy` | `migrate` skill | 옛 위치 기준으로 같은 TSV | 0 |
 | `context-check` | `UserPromptSubmit` 훅 | 훅 JSON 1줄 또는 무출력 | 0 |
 | 그 외 | — | usage(stderr) | 2 |
+
+`legacy`는 `dir`/`scan`의 두 번째 인자로만 받는다. 다른 subcommand는 아니다 — 경로를 계산하는 대상만 바뀌고 로직은 완전히 동일하므로, `migrate`가 새/옛 두 위치를 같은 코드 경로로 스캔하게 하는 게 목적이다.
 
 훅 등록은 `hooks/hooks.json` 한 곳에서 하며, 타임아웃 10초를 준다.
 
@@ -30,13 +34,19 @@
 
 ## 저장 경로 결정
 
-세 서브커맨드가 공유하는 상단 3줄(`scripts/handoffs.sh:8-10`)이 이 프로젝트의 handoff 디렉토리를 계산한다.
+모든 서브커맨드가 공유하는 상단 줄들이 이 프로젝트의 handoff 디렉토리를 계산한다.
 
 ```sh
 root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 slug=$(printf '%s' "$root" | tr '/' '-')
 dir="$HOME/.handoffs/$slug"
+legacy_dir="$HOME/.claude/projects/$slug/handoffs"
+
+target="$dir"
+[ "${2:-}" = "legacy" ] && target="$legacy_dir"
 ```
+
+`dir`과 `scan`은 두 번째 인자가 `legacy`일 때만 `legacy_dir`을 본다. 나머지는 전부 지금까지와 동일하게 `dir`(현재 위치)을 대상으로 한다.
 
 기준점은 git 저장소 루트다. `git rev-parse`가 실패하면(저장소가 아니면) 현재 디렉토리로 떨어진다. 저장소 안에서는 하위 디렉토리 어디서 호출하든 같은 `dir`이 나오므로, 같은 프로젝트의 handoff가 작업 위치에 따라 흩어지지 않는다.
 
@@ -44,7 +54,7 @@ dir="$HOME/.handoffs/$slug"
 
 이 규칙에는 대가가 있다. 프로젝트를 다른 경로로 옮기면(또는 서로 다른 절대경로에 clone/worktree를 두면) slug가 바뀌고, 이전 handoff는 옛 slug 아래에 남아 조회되지 않는다. 이 한계는 host를 가리지 않고 동일하게 적용되며, 자동으로 해소하지 않고 사용자가 수동으로 처리하는 것으로 남겨둔다.
 
-**이전 위치와의 호환은 아직 없다.** `~/.claude/projects/<slug>/handoffs/`에 저장된 기존 문서는 이 경로 변경만으로는 보이지 않는다. 별도의 `migrate` 동작(계획 중, 미구현)이 이 이동을 명시적으로 처리할 예정이다.
+**이전 위치와의 호환은 자동이 아니라 명시적이다.** `~/.claude/projects/<slug>/handoffs/`에 저장된 기존 문서는 경로 변경만으로는 여전히 보이지 않는다 — `list`/`save`/`resume`/`delete`는 `legacy` 인자를 쓰지 않으므로 새 위치만 본다. `migrate` skill이 `dir legacy`·`scan legacy`로 옛 위치를 읽어, 같은 slug의 파일만 사용자 확인 후 새 위치로 옮긴다. slug 자체가 다른 경우(§10.1의 "받아들인 한계" — 프로젝트를 다른 절대경로로 옮긴 경우)는 `migrate`도 찾지 않는다.
 
 ## scan: Goal 문단 추출
 

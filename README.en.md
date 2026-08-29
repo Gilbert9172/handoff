@@ -185,6 +185,8 @@ Example — for a repo at `/Users/<you>/project/handoff`, the path resolves to:
 
 (Per-task notes pile up side by side in that folder — see [How the parallelism works](#how-the-parallelism-works) above.) You can open and edit these files directly in your editor if needed.
 
+**If handoffs saved with an older version of this plugin aren't showing up**, they're likely still at the old location, `~/.claude/projects/<slug>/handoffs/`. Run `/handoff:migrate` to move the old documents for the same project (same slug) to the path above — it won't find them if the repo itself was moved to a different absolute path, since that changes the slug; move those by hand instead. This command is a temporary transition aid and may be removed in a later version.
+
 ---
 
 ## Example workflow

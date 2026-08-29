@@ -1,0 +1,3 @@
+interface:
+  display_name: "Migrate handoffs"
+  short_description: "One-time move of handoffs from the old storage path to the current one"
