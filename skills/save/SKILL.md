@@ -21,7 +21,7 @@ sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" scan  # one line per handoff: slu
 
 ## Location
 
-Handoff files are **personal session-continuity notes**, so they live **outside the repo** — in your home area under a per-project directory, the same place Claude Code keeps project memory: `~/.claude/projects/<project-slug>/handoffs/`.
+Handoff files are **personal session-continuity notes**, so they live **outside the repo** — in your home area under a per-project directory: `~/.handoffs/<project-slug>/`. This path is host-neutral (not tied to `~/.claude` or `~/.codex`) so the same notes are reachable from either.
 
 The script derives `<project-slug>` from the **git root** (fallback: the working directory when not in a git repo), with every `/` replaced by `-`. Git root, not cwd, so a session started in a subdirectory still finds earlier handoffs.
 

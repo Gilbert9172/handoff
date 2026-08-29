@@ -84,10 +84,10 @@ A plugin that keeps you from **losing your place as you switch between tasks**. 
 ## 6️⃣ Where notes live
 
 ```
-~/.claude/projects/<project-slug>/handoffs/HANDOFF-<slug>.md
+~/.handoffs/<project-slug>/HANDOFF-<slug>.md
 ```
 
-`<project-slug>` is the git root path with `/` replaced by `-`. Notes are scoped per project automatically. You can open and edit these files directly.
+`<project-slug>` is the git root path with `/` replaced by `-`. Notes are scoped per project automatically, and the path is the same whether you save or read from Claude Code or Codex. You can open and edit these files directly.
 
 ---
 

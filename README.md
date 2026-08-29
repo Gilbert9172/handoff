@@ -19,7 +19,7 @@
 핵심은 **작업 하나당 노트 하나**라는 점입니다. 모든 작업을 `HANDOFF.md` 한 파일에 욱여넣는 대신, 작업마다 슬러그를 가진 별도 파일로 분리합니다:
 
 ```
-~/.claude/projects/<프로젝트>/handoffs/
+~/.handoffs/<프로젝트>/
 ├── HANDOFF-auction-state-machine.md
 ├── HANDOFF-batch-php-migration.md
 └── HANDOFF-settlement-interface.md
@@ -171,18 +171,18 @@
 
 ## 저장 위치
 
-handoff는 저장소가 아니라 홈 디렉토리의 프로젝트별 폴더에 저장됩니다 (Claude Code가 프로젝트 메모리를 두는 곳과 동일):
+handoff는 저장소가 아니라 홈 디렉토리의 프로젝트별 폴더에 저장됩니다. Claude Code와 Codex 어느 쪽에서 저장·조회하든 같은 경로를 씁니다:
 
 ```
-~/.claude/projects/<프로젝트-슬러그>/handoffs/HANDOFF-<슬러그>.md
+~/.handoffs/<프로젝트-슬러그>/HANDOFF-<슬러그>.md
 ```
 
-`<프로젝트-슬러그>`는 **git 루트 경로**의 `/`를 `-`로 바꾼 값입니다(git 저장소가 아니면 현재 디렉토리 기준). git 루트를 쓰므로 하위 디렉토리에서 세션을 시작해도 이전 handoff를 찾습니다.
+`<프로젝트-슬러그>`는 **git 루트 경로**의 `/`를 `-`로 바꾼 값입니다(git 저장소가 아니면 현재 디렉토리 기준). git 루트를 쓰므로 하위 디렉토리에서 세션을 시작해도 이전 handoff를 찾고, Claude와 Codex가 같은 저장소를 열면 host와 무관하게 같은 슬러그·같은 폴더로 계산됩니다.
 
 예) `handoff` 저장소(`/Users/<you>/project/handoff`)라면 경로는 이렇게 풀립니다:
 
 ```
-~/.claude/projects/-Users-<you>-project-handoff/handoffs/HANDOFF-batch-php-migration.md
+~/.handoffs/-Users-<you>-project-handoff/HANDOFF-batch-php-migration.md
 ```
 
 (같은 폴더에 작업별 노트가 나란히 쌓입니다 — 위 [어떻게 병렬이 되나](#어떻게-병렬이-되나) 참고.) 필요하면 이 파일들을 에디터로 직접 열어 수정해도 됩니다.
@@ -261,10 +261,10 @@ handoff는 저장소가 아니라 홈 디렉토리의 프로젝트별 폴더에 
 → `/plugin list`로 설치 여부 확인 → `/reload-plugins` 실행 → 그래도 없으면 마켓플레이스가 등록됐는지 `/plugin marketplace list`로 확인.
 
 **목록에 handoff가 안 나옴**
-→ 다른 git 루트에서 저장했을 수 있습니다. `git rev-parse --show-toplevel`로 현재 루트를 확인하고, `~/.claude/projects/` 아래 해당 슬러그 폴더가 맞는지 보세요.
+→ 다른 git 루트에서 저장했을 수 있습니다. `git rev-parse --show-toplevel`로 현재 루트를 확인하고, `~/.handoffs/` 아래 해당 슬러그 폴더가 맞는지 보세요.
 
 **저장이 안 됨**
-→ `~/.claude/projects/`에 쓰기 권한이 있는지 확인하세요. 폴더는 첫 저장 시 자동 생성됩니다.
+→ `~/.handoffs/`에 쓰기 권한이 있는지 확인하세요. 폴더는 첫 저장 시 자동 생성됩니다.
 
 ---
 
@@ -289,7 +289,7 @@ sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" scan   # 노트별: 슬러그 · 
 |------|------|------------|
 | 형태 | 단일 skill (저장만) | 4개 커맨드(save·list·resume·delete) — 라이프사이클 전체 |
 | 파일 | `HANDOFF.md` 1개 고정 | `HANDOFF-<슬러그>.md` 작업별 N개 |
-| 저장 위치 | 레포 루트 | `~/.claude/projects/<슬러그>/handoffs/` (홈) |
+| 저장 위치 | 레포 루트 | `~/.handoffs/<슬러그>/` (홈, host 중립) |
 | 스코핑 | 없음(cwd) | git 루트 기준 슬러그 |
 | 목록·조회 | 없음 | `scan` 스크립트(인덱스 없이) |
 | 배포 | 복사·붙여넣기 | 마켓플레이스 등록·설치 |

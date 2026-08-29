@@ -2,7 +2,7 @@
 
 > 상태: Draft
 > 작성일: 2026-08-27
-> 개정일: 2026-08-27 — `skills/` 단일화 결정, 전환 검증 순서, `save` 대상 판정 및 실패 처리 반영
+> 개정일: 2026-08-29 — §10 저장 위치 결정 확정(`~/.handoffs/<project-slug>/`, flat, 즉시 전환); §14 프로젝트 식별 방식 미결정 해소 (2026-08-27 — `skills/` 단일화 결정, 전환 검증 순서, `save` 대상 판정 및 실패 처리 반영)
 > 대상: Claude Code 및 Codex 로컬 환경
 
 ## 1. 배경
@@ -390,37 +390,49 @@ Codex의 `PreCompact`와 `PostCompact` 이벤트는 토큰 비율을 대신하�
 
 ## 10. 저장 위치와 마이그레이션
 
-### 10.1 목표 위치
+### 10.1 저장 위치 (결정, 2026-08-29 구현)
 
-장기적으로 host 중립적인 사용자 데이터 경로를 사용한다.
+host 중립적인 사용자 데이터 경로를 확정하고 구현했다.
 
 ```text
-~/.handoff/projects/<project-id>/handoffs/HANDOFF-<task-slug>.md
+~/.handoffs/<project-slug>/HANDOFF-<task-slug>.md
 ```
 
-기본 경로는 `~/.handoff`로 확정한다. `~/.claude`와 `~/.codex`가 이미 홈 직하 디렉토리 관례를 쓰고 있어 일관적이고, 사용자가 다른 위치를 원하면 `HANDOFF_HOME` 환경변수로 덮어쓸 수 있다. XDG data directory를 쓰는 사용자는 이 환경변수로 흡수되므로 별도 규격을 따르지 않는다.
+초안(`~/.handoff/projects/<project-id>/handoffs/...`)에서 두 가지를 바꿨다.
+
+- `.handoff`(단수) 대신 `.handoffs`(복수)를 쓴다. `~/.claude`·`~/.codex`처럼 홈 직하 디렉토리 관례를 따르는 것은 같지만, 이름 자체가 이 도구의 명령 이름(`save`/`list`/`resume`/`delete`가 다루는 대상)과 그대로 대응해 더 직관적이다.
+- `projects/<id>/handoffs/` 두 겹 중첩을 없애고 `<project-slug>/`로 한 단계 평탄화했다. 최상위가 이미 `.handoffs`이므로 그 아래에 다시 `handoffs/`를 두는 건 중복이었다.
+
+`<project-slug>`는 §10.3의 기존 알고리즘(git root 절대경로의 `/`→`-`)을 그대로 쓴다 — 새 알고리즘이 아니라 저장 위치만 옮긴 것이다. 이 알고리즘은 Claude가 자체적으로 `~/.claude/projects/`를 만들 때 쓰는 것과 우연히 같지만, `~/.handoffs/`는 그 디렉토리 아래에 있지 않다 — 완전히 분리된 host 중립 최상위 경로다. **Codex는 프로젝트별 디렉토리 관례가 아예 없다** (`~/.codex/sessions/<year>/<month>/<day>/rollout-*.jsonl`처럼 날짜로만 분리하고, 프로젝트 식별자는 각 rollout의 `session_meta.payload.cwd`에만 존재 — 2026-08-29 실측). 그래서 "Codex 방식에 맞춘다"는 선택지 자체가 없고, 이 slug 계산은 두 host 중 어느 쪽 관례도 아닌 **plugin 자체의 계산**이다. Claude와 Codex가 같은 git 저장소에서 이 스크립트를 호출하면 같은 절대경로 → 같은 slug → 같은 디렉토리로 수렴하므로, 어느 host에서 저장했는지는 조회 결과에 영향을 주지 않는다.
+
+사용자가 다른 위치를 원하면 `HANDOFF_HOME` 환경변수로 덮어쓸 수 있다(계획, 미구현). XDG data directory를 쓰는 사용자는 이 환경변수로 흡수되므로 별도 규격을 따르지 않는다.
 
 플러그인별 `PLUGIN_DATA`는 host 및 설치별로 분리될 수 있으므로 Claude와 Codex가 공유하는 영구 저장소로 사용하지 않는다.
 
-### 10.2 호환 전략
+**받아들인 한계.** slug가 프로젝트명이 아니라 전체 절대경로이므로 이름 충돌은 없지만, 같은 프로젝트를 다른 절대경로(이동, worktree, 다른 위치의 clone)에서 열면 다른 slug로 갈라진다. 이 저장소 자체가 실례다 — `~/.claude/projects/`에 `-Users-giljun-ai-zone-handoff`와 `-Users-giljun-repository-ai-zone-handoff`가 별도로 존재한다(같은 논리적 프로젝트, 사용자가 폴더를 옮긴 결과). 이 분기를 자동으로 병합하는 로직은 두지 않는다 — 사용자가 스스로 만든 경로 변경이므로 사용자가 수동으로 정리하는 것이 맞다는 판단이다(§14에 반영).
 
-기존 문서는 현재 위치에 존재한다.
+### 10.2 호환 전략 (수정, 2026-08-29 — dual-read 대신 명시적 `migrate`)
+
+기존 문서는 이전 위치에 남아 있다.
 
 ```text
 ~/.claude/projects/<project-slug>/handoffs/
 ```
 
-단계적으로 다음 정책을 적용한다.
+초안은 "새 경로와 기존 경로를 함께 탐색"하는 dual-read 기간을 두는 계획이었다. 이를 뒤집는다 — `dir`/`scan`은 `context-check` 훅과 함께 매 프롬프트·매 커맨드마다 도는 hot path이므로, 여기에 두 경로를 매번 스캔하는 로직을 영구히 심는 비용이, 한 번의 명시적 이동보다 크다고 판단했다. 대신:
 
-1. 초기 Codex 지원 버전은 기존 Claude 경로를 계속 읽고 쓸 수 있다.
-2. 중립 경로 도입 후에는 새 경로와 기존 경로를 함께 탐색한다.
-3. 동일 slug 문서가 두 위치에 있으면 자동 병합하지 않는다. 두 문서의 `updated`(없으면 파일 수정 시각)와 Goal 첫 문단을 나란히 보여주고 사용자가 대상을 고르게 한다.
-4. 마이그레이션은 명시적 명령 또는 사용자 확인을 거친다.
-5. 충분한 호환 기간 후 중립 경로를 기본 쓰기 위치로 전환한다.
+1. §10.1의 새 경로(`~/.handoffs/<project-slug>/`)로 **즉시 전환**한다. dual-read 기간을 두지 않는다.
+2. 기존 `~/.claude/projects/<project-slug>/handoffs/` 문서는 이 전환만으로는 보이지 않는다. 별도의 `migrate` 동작(계획 중, 미구현)이 명시적으로 옮긴다.
+3. `migrate`는 자연어 자동 호출을 막고 명시 호출만 허용한다(여러 파일을 이동하는 구조적 작업이라 `delete`보다 보수적으로 다룬다).
+4. `migrate`는 **같은 slug 1:1**만 옮긴다. slug가 다른 "사실은 같은 프로젝트"(§10.1의 받아들인 한계 참고)를 찾아 병합하는 로직은 두지 않는다 — 사용자가 만든 경로 변경이므로 사용자가 수동으로 처리한다.
+5. 이동하려는 slug가 새 경로에 이미 존재하면(예: `migrate`를 두 번 실행) 자동 병합하지 않는다. 두 문서의 `updated`(없으면 파일 수정 시각)와 Goal 첫 문단을 나란히 보여주고 사용자가 대상을 고르게 한다.
+6. `migrate`는 임시 기능이다. 충분한 사용자가 전환을 마친 뒤 플러그인에서 제거한다.
 
-### 10.3 프로젝트 ID
+### 10.3 프로젝트 ID (결정, 2026-08-29)
 
-초기에는 기존과 동일하게 git root의 절대 경로를 정규화한 값을 사용할 수 있다. 저장소 이동, worktree, 동일 remote clone을 하나의 프로젝트로 볼 것인지는 별도 설계 결정으로 남긴다.
+기존과 동일하게 git root의 절대 경로를 정규화한 값(`/`→`-`)을 그대로 쓴다. git remote나 별도 repository ID로 바꾸지 않는다 — 이름 충돌이 없다는 게 이 방식의 핵심 장점이고, 두 host 중 어느 쪽도 강제하는 관례가 없어(§10.1) 바꿀 압력도 없다.
+
+저장소 이동, worktree, 동일 remote의 다른 clone은 **의도적으로 하나의 프로젝트로 통합하지 않는다.** 절대 경로가 다르면 다른 slug다. 자동 통합 로직(예: remote URL로 동일성 판단)은 오탐 시 서로 무관한 두 작업의 handoff를 한 폴더에 섞는 대가가, 미탐 시 이미 있는 수동 정리 부담보다 크다고 판단해 두지 않기로 했다. 사용자가 프로젝트를 옮겨서 slug가 갈라진 경우는 §10.1의 "받아들인 한계"이며, 필요하면 사용자가 파일을 직접 옮긴다.
 
 ## 11. 권한과 안전
 
@@ -521,13 +533,13 @@ Codex의 `PreCompact`와 `PostCompact` 이벤트는 토큰 비율을 대신하�
 
   사용자가 대화형 세션에서 이 plugin의 hook을 한 번 신뢰 승인한 뒤 재확인이 필요하다.
 - ~~Codex 대화형 TUI에서 `$skill` 명시 호출이 `allow_implicit_invocation: false`를 우회하는지~~ — **더는 의사결정에 영향을 주지 않는 질문이 됐다.** `list`·`delete`에서 이 policy 필드 자체를 뺐기 때문이다(§7.1 "번복"). `codex exec`와 TUI가 이 필드를 다르게 처리하는지는 여전히 미확인이지만, 우리가 그 필드를 안 쓰기로 한 이상 조사할 이유가 없다.
-- 절대 경로, git remote, repository ID 중 무엇으로 프로젝트를 식별할지
-- 기존 Claude 경로에서 새 경로로의 기본 전환 시점
 - Codex 컨텍스트 임계치 알림을 기본 활성화할지 opt-in으로 둘지
 - §5.4의 누적 섹션에서 중복을 판정하는 구체적 기준
 
 ### 해결됨
 
+- ~~절대 경로, git remote, repository ID 중 무엇으로 프로젝트를 식별할지~~ — **절대 경로 유지 (2026-08-29).** 이름 충돌 없음이 핵심 장점이고, Codex가 프로젝트 디렉토리 관례 자체가 없어(§10.1 실측) 다른 host 관례에 맞출 이유도 없었다. 저장소 이동으로 slug가 갈라지는 경우는 자동 통합하지 않고 사용자가 수동 처리한다(§10.3).
+- ~~기존 Claude 경로에서 새 경로로의 기본 전환 시점~~ — **즉시 전환 (2026-08-29).** dual-read 기간을 두지 않기로 뒤집었다. `dir`/`scan`이 매 프롬프트·매 커맨드마다 도는 hot path라 두 경로를 영구히 함께 스캔하는 비용이 크다고 판단했고, 대신 한 번의 명시적 `migrate` 동작(계획 중)으로 옮긴다(§10.2).
 - ~~`agents/openai.yaml`과 `.codex-plugin/plugin.json`의 역할 경계~~ — 경쟁 관계가 아니었다. `.codex-plugin/plugin.json`은 플러그인 매니페스트(skill 목록의 원본은 여전히 `skills/` 디렉토리 스캔)이고, `agents/openai.yaml`은 **skill 하나에 스코프된** 부속 파일이다. 로컬 Codex CLI(`codex-cli 0.150.0`)의 `skill-creator` 참조 문서로 확인.
 - ~~`policy.allow_implicit_invocation`의 선언 위치~~ — `skills/<name>/agents/openai.yaml` (플러그인 루트가 아니라 해당 skill 디렉토리 안). 근거는 위와 동일. §7 아키텍처 트리에 반영함.
 - ~~Codex의 `policy.allow_implicit_invocation: false`가 `disable-model-invocation`과 실제로 같은 범위를 막는지~~ — **같은 범위를 막지 않는다. 더 넓게 막는다.** `disable-model-invocation`(Claude)은 자연어 자동 호출만 막고 명시 호출(`/handoff:list`)은 그대로 둔다. `allow_implicit_invocation: false`(Codex, `codex exec` 기준)는 자연어와 `$list` 명시 호출을 **둘 다** 막는다. §12 단계 2 "설치 레벨 발견 2"에서 `save`(정책 없음, `$` 성공) vs `list`(정책 있음, `$` 실패)를 대조해 실측했다. §7.1·§13 항목 3에 반영.

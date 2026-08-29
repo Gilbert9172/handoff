@@ -19,7 +19,7 @@ It captures "what you were trying to do, how far you got, and what to do next" a
 The key is **one note per task**. Instead of cramming everything into a single `HANDOFF.md`, each task gets its own slugged file:
 
 ```
-~/.claude/projects/<project>/handoffs/
+~/.handoffs/<project>/
 ├── HANDOFF-auction-state-machine.md
 ├── HANDOFF-batch-php-migration.md
 └── HANDOFF-settlement-interface.md
@@ -169,18 +169,18 @@ Concrete next actions
 
 ## Where notes are stored
 
-Handoffs are saved to your home directory, not the repository — the same location Claude Code uses for project memory:
+Handoffs are saved to your home directory, not the repository. The path is host-neutral, so Claude Code and Codex resolve to the same location:
 
 ```
-~/.claude/projects/<project-slug>/handoffs/HANDOFF-<slug>.md
+~/.handoffs/<project-slug>/HANDOFF-<slug>.md
 ```
 
-`<project-slug>` is the git root path with `/` replaced by `-` (falls back to the current directory if not in a git repo). Because it's based on the git root, handoffs are found correctly even when a session starts from a subdirectory.
+`<project-slug>` is the git root path with `/` replaced by `-` (falls back to the current directory if not in a git repo). Because it's based on the git root, handoffs are found correctly even when a session starts from a subdirectory — and because both hosts compute the same slug from the same repo path, saving from one and resuming from the other lands in the same folder.
 
 Example — for a repo at `/Users/<you>/project/handoff`, the path resolves to:
 
 ```
-~/.claude/projects/-Users-<you>-project-handoff/handoffs/HANDOFF-batch-php-migration.md
+~/.handoffs/-Users-<you>-project-handoff/HANDOFF-batch-php-migration.md
 ```
 
 (Per-task notes pile up side by side in that folder — see [How the parallelism works](#how-the-parallelism-works) above.) You can open and edit these files directly in your editor if needed.
@@ -259,10 +259,10 @@ After the plugin code is updated, run `/plugin marketplace update gilbert9172` t
 → Check with `/plugin list` → run `/reload-plugins` → if still missing, verify the marketplace is registered with `/plugin marketplace list`.
 
 **Handoffs not showing in list**
-→ They may have been saved from a different git root. Run `git rev-parse --show-toplevel` to confirm the current root, then check that the matching slug folder exists under `~/.claude/projects/`.
+→ They may have been saved from a different git root. Run `git rev-parse --show-toplevel` to confirm the current root, then check that the matching slug folder exists under `~/.handoffs/`.
 
 **Save not working**
-→ Verify you have write permission to `~/.claude/projects/`. The directory is created automatically on first save.
+→ Verify you have write permission to `~/.handoffs/`. The directory is created automatically on first save.
 
 ---
 
@@ -287,7 +287,7 @@ This plugin started from the [handoff skill in ykdojo/claude-code-tips](https://
 |--|----------|------------|
 | Form | Single skill (save only) | 4 commands (save · list · resume · delete) — full lifecycle |
 | File | One fixed `HANDOFF.md` | Per-task `HANDOFF-<slug>.md` files |
-| Storage | Repo root | `~/.claude/projects/<slug>/handoffs/` (home dir) |
+| Storage | Repo root | `~/.handoffs/<slug>/` (home dir, host-neutral) |
 | Scoping | cwd | git root slug |
 | Listing | None | `scan` script (no index) |
 | Distribution | Copy-paste | Marketplace register & install |

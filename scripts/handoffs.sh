@@ -7,7 +7,7 @@ set -eu
 
 root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 slug=$(printf '%s' "$root" | tr '/' '-')
-dir="$HOME/.claude/projects/$slug/handoffs"
+dir="$HOME/.handoffs/$slug"
 
 case "${1:-}" in
   dir)

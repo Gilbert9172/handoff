@@ -35,14 +35,16 @@
 ```sh
 root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 slug=$(printf '%s' "$root" | tr '/' '-')
-dir="$HOME/.claude/projects/$slug/handoffs"
+dir="$HOME/.handoffs/$slug"
 ```
 
 기준점은 git 저장소 루트다. `git rev-parse`가 실패하면(저장소가 아니면) 현재 디렉토리로 떨어진다. 저장소 안에서는 하위 디렉토리 어디서 호출하든 같은 `dir`이 나오므로, 같은 프로젝트의 handoff가 작업 위치에 따라 흩어지지 않는다.
 
-프로젝트 식별자는 절대경로의 `/`를 `-`로 치환해 만든다. `/Users/gilbert/gilbert/handoff`는 선행 슬래시까지 치환돼 `-Users-gilbert-gilbert-handoff`가 된다. 이는 Claude Code가 자체 프로젝트 디렉토리를 만드는 규칙과 같아서, handoff 문서가 해당 프로젝트의 기존 메모리 디렉토리 아래에 자연스럽게 들어간다.
+프로젝트 식별자는 절대경로의 `/`를 `-`로 치환해 만든다. `/Users/gilbert/gilbert/handoff`는 선행 슬래시까지 치환돼 `-Users-gilbert-gilbert-handoff`가 된다. 이 slug 알고리즘 자체는 Claude Code가 `~/.claude/projects/`를 만드는 규칙과 같지만, 저장 위치는 그 디렉토리 **아래가 아니다** — `~/.handoffs/`는 host 중립 최상위 디렉토리로 분리돼 있어, Claude든 Codex든 같은 스크립트가 같은 slug를 계산해 같은 폴더를 본다. 우연히 같은 알고리즘을 쓸 뿐, Claude의 메모리 디렉토리에 얹혀가는 구조가 아니다.
 
-이 규칙에는 대가가 있다. 프로젝트를 다른 경로로 옮기면 slug가 바뀌고, 이전 handoff는 옛 경로 아래에 남아 조회되지 않는다. 설계 문서 §10은 이 결합을 끊기 위해 `~/.handoff/projects/<project-id>/`로 옮기는 계획을 두고 있으나 아직 구현 전이다.
+이 규칙에는 대가가 있다. 프로젝트를 다른 경로로 옮기면(또는 서로 다른 절대경로에 clone/worktree를 두면) slug가 바뀌고, 이전 handoff는 옛 slug 아래에 남아 조회되지 않는다. 이 한계는 host를 가리지 않고 동일하게 적용되며, 자동으로 해소하지 않고 사용자가 수동으로 처리하는 것으로 남겨둔다.
+
+**이전 위치와의 호환은 아직 없다.** `~/.claude/projects/<slug>/handoffs/`에 저장된 기존 문서는 이 경로 변경만으로는 보이지 않는다. 별도의 `migrate` 동작(계획 중, 미구현)이 이 이동을 명시적으로 처리할 예정이다.
 
 ## scan: Goal 문단 추출
 
