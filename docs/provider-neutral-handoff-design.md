@@ -2,6 +2,7 @@
 
 > 상태: Draft
 > 작성일: 2026-08-27
+> 개정일: 2026-08-30 — §7.4 커맨드 표기(호출 접두사) 결정 추가
 > 개정일: 2026-08-29 — §10 저장 위치 결정 확정(`~/.handoffs/<project-slug>/`, flat, 즉시 전환); §14 프로젝트 식별 방식 미결정 해소 (2026-08-27 — `skills/` 단일화 결정, 전환 검증 순서, `save` 대상 판정 및 실패 처리 반영)
 > 대상: Claude Code 및 Codex 로컬 환경
 
@@ -308,6 +309,19 @@ policy:
 - Codex sandbox와 approval 정책을 정상적인 실행 조건으로 취급한다.
 
 Anthropic은 새 플러그인에 `skills/` 사용을 권장하며, OpenAI의 공식 전환 가이드도 Claude의 재사용 가능한 command를 skill로 변환하고 hook을 Codex 런타임에 맞게 조정하도록 안내한다.
+
+### 7.4 커맨드 표기: 호출 접두사 (결정, 2026-08-30)
+
+같은 skill을 호출하는 문법이 host마다 다르다. Claude Code는 `/handoff:list`, Codex는 `$handoff:list`다. 그런데 skill이 사용자에게 **되돌려 출력하는** 안내 문구에는 접두사가 `/`로 하드코딩돼 있었다 — Codex에서 `$handoff:list`로 호출했는데 결과 하단 안내는 "이어서 작업하려면 `/handoff:resume <slug>`"로 나오는, 그 host에서는 실행되지 않는 명령을 안내하는 버그였다.
+
+**결정: 접두사를 문서에 박지 않고, skill instruction에서 host의 표기를 따르게 한다.** 각 SKILL.md 끝에 동일한 `## Command notation` 문단을 두고 두 단계 규칙을 준다.
+
+1. 사용자가 명시 호출을 타이핑했다면 **그 호출의 접두사를 그대로 복사한다.** 이게 가장 강한 신호이고, 두 host 모두 그 입력이 transcript에 남는다.
+2. 자연어로 활성화돼 복사할 접두사가 없으면 현재 host의 표기를 쓴다 (Claude Code `/`, Codex `$`).
+
+**대안으로 검토했다가 채택하지 않은 것: 환경변수 기반 host 감지.** `handoffs.sh`에 `prefix` 서브커맨드를 두고 `CLAUDECODE`(Claude Code가 모든 tool shell에 넣는 것을 실측 확인)와 `CODEX_*`로 판별하는 안이었다. 채택하지 않은 이유는 두 가지다 — (a) Codex 쪽 신호는 실측하지 못했다. 바이너리(`codex 0.151.0`)에 `CODEX_SANDBOX`, `CODEX_SANDBOX_NETWORK_DISABLED`, `CODEX_THREAD_ID` 문자열이 존재하는 것까지만 확인했고, 이 중 무엇이 **모든 실행 모드에서** skill의 shell에 실제로 주입되는지는 확인하지 못했다. (b) 감지에 성공하더라도 "출력할 때 이 값을 치환하라"는 지시 이행 문제는 그대로 남으므로, shell 왕복 한 번을 더 들이고 미검증 감지를 넣는 대가에 비해 얻는 게 작다.
+
+**hook 메시지는 예외적으로 기본값 `/`를 유지한다.** `context-check`가 출력하는 배너·additionalContext는 지금 `hooks/hooks.json`(Claude adapter)에서만 등록되므로 `/`가 정확한 값이다. 다른 host가 같은 스크립트를 자기 prompt hook에 연결하는 경우를 위해 `HANDOFF_CMD_PREFIX` 환경변수 override만 열어둔다(기존 `HANDOFF_BAND_*`, `HANDOFF_CONTEXT_LIMIT`와 같은 성격의 escape hatch). Codex hook 지원이 §14대로 실측되면 그때 이 기본값을 재검토한다.
 
 ## 8. 모델 정책
 

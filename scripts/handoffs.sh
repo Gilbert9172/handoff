@@ -1,8 +1,8 @@
 #!/bin/sh
-# Shared path/scan logic for the /handoff family of skills.
+# Shared path/scan logic for the handoff family of skills.
 # usage: handoffs.sh dir [legacy]           -> print the project's handoff directory
 #        handoffs.sh scan [legacy]          -> one line per handoff: slug<TAB>updated<TAB>first Goal paragraph
-#        handoffs.sh context-check          -> UserPromptSubmit hook: suggest /handoff:save when context usage is high
+#        handoffs.sh context-check          -> UserPromptSubmit hook: suggest handoff:save when context usage is high
 # The optional "legacy" argument targets the pre-1.5 Claude-only storage path
 # (~/.claude/projects/<slug>/handoffs/) instead of the current host-neutral one
 # (~/.handoffs/<slug>/). Only the migrate skill passes it.
@@ -35,7 +35,7 @@ case "${1:-}" in
     done
     ;;
   context-check)
-    # Reads the UserPromptSubmit hook payload on stdin and suggests /handoff:save
+    # Reads the UserPromptSubmit hook payload on stdin and suggests handoff:save
     # as the session's context fills up. Three bands, each firing at most once per
     # session (the marker file records the highest band already fired):
     #   band 1 (default 35%) -> green  tag, gentle suggestion
@@ -46,6 +46,12 @@ case "${1:-}" in
     transcript=$(printf '%s' "$input" | sed -n 's/.*"transcript_path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
     session=$(printf '%s' "$input" | sed -n 's/.*"session_id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
     if [ -z "$transcript" ] || [ ! -f "$transcript" ]; then exit 0; fi
+
+    # Hosts type the command differently: "/handoff:save" on Claude Code,
+    # "$handoff:save" on Codex. Only hooks/hooks.json (the Claude adapter) registers
+    # this hook today, so "/" is the right default; HANDOFF_CMD_PREFIX overrides it
+    # for any host that wires the same script into its own prompt hook.
+    prefix="${HANDOFF_CMD_PREFIX:-/}"
 
     band1="${HANDOFF_BAND_1:-35}"
     band2="${HANDOFF_BAND_2:-50}"
@@ -137,12 +143,12 @@ claude-sonnet-4-6 1000000'
     printf '%s' "$band" > "$marker"
 
     case "$band" in
-      1) tag='🟢'; suffix='/handoff:save 사용을 추천합니다'
-         ask="briefly mention that now is a good moment to run /handoff:save, in one short sentence" ;;
-      2) tag='🟠'; suffix='/handoff:save 사용을 권장합니다'
-         ask="recommend running /handoff:save fairly clearly — context is half gone — in one or two short sentences" ;;
-      3) tag='🔴'; suffix='/handoff:save 를 사용하여 컨텍스트를 관리하세요'
-         ask="clearly advise that context is running low and that using /handoff:save now is strongly recommended to manage context, in one short sentence. Do NOT phrase it as a yes/no question and do NOT save anything yourself" ;;
+      1) tag='🟢'; suffix="${prefix}handoff:save 사용을 추천합니다"
+         ask="briefly mention that now is a good moment to run ${prefix}handoff:save, in one short sentence" ;;
+      2) tag='🟠'; suffix="${prefix}handoff:save 사용을 권장합니다"
+         ask="recommend running ${prefix}handoff:save fairly clearly — context is half gone — in one or two short sentences" ;;
+      3) tag='🔴'; suffix="${prefix}handoff:save 를 사용하여 컨텍스트를 관리하세요"
+         ask="clearly advise that context is running low and that using ${prefix}handoff:save now is strongly recommended to manage context, in one short sentence. Do NOT phrase it as a yes/no question and do NOT save anything yourself" ;;
     esac
 
     banner="$tag [handoff] 컨텍스트 ${pct}% 사용 중 (${used}/${limit} 토큰) — ${suffix}"

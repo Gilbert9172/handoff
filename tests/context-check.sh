@@ -40,3 +40,9 @@ assert_contains 'explicit Claude limit overrides model map' "$output" '200% 사�
 
 output=$(run_hook "$fixtures/codex.jsonl" codex)
 assert_contains 'Codex transcript limit remains authoritative' "$output" '40% 사용 중 (40000/100000 토큰)'
+
+output=$(run_hook "$fixtures/claude-haiku.jsonl" prefix-default)
+assert_contains 'command prefix defaults to Claude Code notation' "$output" '/handoff:save'
+
+output=$(HANDOFF_CMD_PREFIX='$' run_hook "$fixtures/claude-haiku.jsonl" prefix-override)
+assert_contains 'HANDOFF_CMD_PREFIX switches the suggested command' "$output" '$handoff:save'

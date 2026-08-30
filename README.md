@@ -86,6 +86,8 @@
 | `/handoff:resume [슬러그]` | 노트를 읽고 Next Steps부터 작업 재개 | 슬러그(선택) |
 | `/handoff:delete [슬러그]` | 끝났거나 버린 작업의 노트 삭제 | 슬러그(선택) |
 
+> **Codex에서는 접두사가 `$`입니다.** Codex는 skill을 `$`로 호출하므로 같은 커맨드를 `$handoff:save`, `$handoff:list`, `$handoff:resume`, `$handoff:delete`로 입력하세요. 이 문서의 나머지 표기는 Claude Code 기준(`/`)입니다.
+
 ### `/handoff:save [제목]`
 
 세션을 마무리하거나 다른 작업으로 넘어갈 때 진행 상황을 기록합니다.
@@ -133,6 +135,7 @@
 | `HANDOFF_BAND_2` | `50` | 🟠 2단계 사용률(%) |
 | `HANDOFF_BAND_3` | `75` | 🔴 3단계 사용률(%) |
 | `HANDOFF_CONTEXT_LIMIT` | 모델별 자동 감지 | 이 세션의 컨텍스트 윈도우 크기 override(토큰) |
+| `HANDOFF_CMD_PREFIX` | `/` | 훅 메시지에 쓸 커맨드 접두사. 이 훅은 현재 Claude Code에만 등록되므로 기본값이 `/`이고, 같은 스크립트를 Codex 훅으로 직접 연결했다면 `$`로 바꾸세요 |
 
 > Claude transcript의 assistant message에서 모델을 읽어 1M 모델은 1,000,000으로 계산하고, 그 외 모델은 200,000으로 계산합니다. Codex는 transcript의 `model_context_window` 값을 사용합니다. 자동 감지가 맞지 않는 custom deployment에서는 `HANDOFF_CONTEXT_LIMIT`로 직접 지정할 수 있습니다.
 

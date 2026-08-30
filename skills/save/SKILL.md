@@ -1,6 +1,6 @@
 ---
 name: save
-description: Write or update a handoff document so the next agent with fresh context can continue this work. Use when wrapping up a session, switching tasks, or asked to leave notes for a future conversation. Pass an optional title to target a specific handoff. Siblings — /handoff:list to see existing handoffs, /handoff:resume to continue from one, /handoff:delete to remove one.
+description: Write or update a handoff document so the next agent with fresh context can continue this work. Use when wrapping up a session, switching tasks, or asked to leave notes for a future conversation. Pass an optional title to target a specific handoff. Siblings — the list skill shows existing handoffs, resume continues from one, delete removes one.
 argument-hint: "[title]"
 allowed-tools:
   - Bash(sh:*), Bash(echo:*)
@@ -65,5 +65,9 @@ If the target path can't be written (permission denied, sandbox block, disk erro
 Tell the user three things, so the next conversation needs no remembered paths. In every case below, substitute the **actual** values — never print the literal placeholders `<slug>` or `$HOME`; replace them with the resolved slug and expanded path:
 
 1. The **full, expanded** file path (with `$HOME` and the slug resolved).
-2. The resume command, with the real slug filled in — e.g. `/handoff:resume auth-jwt-migration`, not `/handoff:resume <slug>`.
-3. A note that continuing is best done in a **fresh session**: handoff exists precisely so an agent with clean context can pick up the work — so if they want to keep going, they should start a new session and run the resume command there rather than continuing in this one. Write it in the user's language with the real slug already substituted, e.g. (for slug `auth-jwt-migration`): "save 완료 후 이어서 진행하실 경우, 새로운 세션에서 `/handoff:resume auth-jwt-migration` 로 이어서 해주세요."
+2. The resume command, with the real slug filled in and this host's command prefix (see **Command notation**) — e.g. `/handoff:resume auth-jwt-migration` on Claude Code, `$handoff:resume auth-jwt-migration` on Codex. Never leave the literal `<slug>` placeholder in.
+3. A note that continuing is best done in a **fresh session**: handoff exists precisely so an agent with clean context can pick up the work — so if they want to keep going, they should start a new session and run the resume command there rather than continuing in this one. Write it in the user's language with the real slug already substituted, e.g. (for slug `auth-jwt-migration`, on Claude Code): "save 완료 후 이어서 진행하실 경우, 새로운 세션에서 `/handoff:resume auth-jwt-migration` 로 이어서 해주세요."
+
+## Command notation
+
+When you print a handoff command for the user, write it with the prefix **this host** uses to invoke skills — `/handoff:resume <slug>` on Claude Code, `$handoff:resume <slug>` on Codex. Never hardcode `/`: if the user typed the invocation that started this skill, copy its prefix; otherwise use this host's own.

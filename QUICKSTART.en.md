@@ -65,6 +65,8 @@ A plugin that keeps you from **losing your place as you switch between tasks**. 
 | `/handoff:resume [slug]` | Resume a task | `/handoff:resume api-docs` |
 | `/handoff:delete [slug]` | Delete a note | `/handoff:delete api-docs` |
 
+> Codex invokes skills with `$` — type `$handoff:save`, `$handoff:list`, and so on. This document uses Claude Code's `/` notation.
+
 ---
 
 ## 5️⃣ Note structure (sections filled on save)

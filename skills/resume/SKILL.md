@@ -20,7 +20,7 @@ sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" scan  # slug, updated date, first
 (`${CLAUDE_PLUGIN_ROOT}` is this plugin's installation directory. If the variable is unavailable, the plugin root is two directories above this skill's base directory.)
 
 - **With a title argument** → the file is `$dir/HANDOFF-<title-slug>.md` (title lowercased, spaces → hyphens). If it doesn't exist, show the scan results so the user can pick the right slug.
-- **Without a title** → if exactly one handoff exists, use it; if several, show the table and ask which via AskUserQuestion; if none, say so and suggest `/handoff:save` to create one.
+- **Without a title** → if exactly one handoff exists, use it; if several, show the table and ask which via AskUserQuestion; if none, say so and suggest `handoff:save` (see **Command notation**) to create one.
 
 ## Continue the work
 
@@ -30,4 +30,8 @@ sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" scan  # slug, updated date, first
   - Don't execute in the same turn. Resuming loads context — it doesn't commit the user to the plan; they may tweak the steps or do something else.
   - Prefer AskUserQuestion when the choice is clear-cut (e.g. "Continue with the next steps" vs. "Do something else").
 4. Once the user confirms, execute the **Next Steps**. Respect **What Didn't Work** — the whole point of that section is that failed approaches aren't repeated.
-5. When this session later wraps up, update the same handoff via `/handoff:save` so the chain continues.
+5. When this session later wraps up, update the same handoff via `handoff:save` so the chain continues.
+
+## Command notation
+
+When you print a handoff command for the user, write it with the prefix **this host** uses to invoke skills — `/handoff:resume <slug>` on Claude Code, `$handoff:resume <slug>` on Codex. Never hardcode `/`: if the user typed the invocation that started this skill, copy its prefix; otherwise use this host's own.

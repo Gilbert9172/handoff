@@ -86,6 +86,8 @@ Add the following to your project's `.claude/settings.json` to have the marketpl
 | `/handoff:resume [slug]` | Read a note and continue from its Next Steps | slug (optional) |
 | `/handoff:delete [slug]` | Delete a finished or abandoned note | slug (optional) |
 
+> **On Codex the prefix is `$`.** Codex invokes skills with `$`, so type `$handoff:save`, `$handoff:list`, `$handoff:resume`, `$handoff:delete` there. The rest of this document uses Claude Code's `/` notation.
+
 ### `/handoff:save [title]`
 
 Call this when wrapping up a session or switching to a different task.
@@ -133,6 +135,7 @@ Thresholds are configurable via environment variables:
 | `HANDOFF_BAND_2` | `50` | 🟠 stage 2 usage (%) |
 | `HANDOFF_BAND_3` | `75` | 🔴 stage 3 usage (%) |
 | `HANDOFF_CONTEXT_LIMIT` | detected by model | Override for this session's context window size (tokens) |
+| `HANDOFF_CMD_PREFIX` | `/` | Command prefix used in the hook's message. The hook is only registered on Claude Code today, hence the `/` default — set it to `$` if you wire the same script into a Codex hook yourself |
 
 > For Claude, the hook reads the model from assistant messages in the transcript, uses 1,000,000 for known 1M models, and uses 200,000 for every other model. For Codex, it uses the transcript's `model_context_window`. Set `HANDOFF_CONTEXT_LIMIT` explicitly only when automatic detection does not fit a custom deployment.
 

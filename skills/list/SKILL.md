@@ -16,6 +16,10 @@ sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" scan
 
 It prints one line per handoff: slug, last-modified date, and the first paragraph of its Goal section (tab-separated). The script scopes to the current project — it derives the directory from the git root (fallback: cwd). (`${CLAUDE_PLUGIN_ROOT}` is this plugin's installation directory. If the variable is unavailable, the plugin root is two directories above this skill's base directory.)
 
-Present the output as a table in the script's column order — **Slug | Updated | Goal** — followed by the hint: resume with `/handoff:resume <slug>`, delete with `/handoff:delete <slug>`. Copy each Goal cell verbatim from the script's output; don't summarize, translate, or truncate it. Write the surrounding text — the header row and the hint — in the user's language. Then stop; listing is strictly read-only — don't create, rename, or modify anything.
+Present the output as a table in the script's column order — **Slug | Updated | Goal** — followed by the hint: resume with `handoff:resume <slug>`, delete with `handoff:delete <slug>`, each written with this host's command prefix (see **Command notation** below). Copy each Goal cell verbatim from the script's output; don't summarize, translate, or truncate it. Write the surrounding text — the header row and the hint — in the user's language. Then stop; listing is strictly read-only — don't create, rename, or modify anything.
 
-- If the scan prints nothing, say there are no handoffs for this project yet and that `/handoff:save` creates one.
+- If the scan prints nothing, say there are no handoffs for this project yet and that `handoff:save` — same prefix rule — creates one.
+
+## Command notation
+
+When you print a handoff command for the user, write it with the prefix **this host** uses to invoke skills — `/handoff:resume <slug>` on Claude Code, `$handoff:resume <slug>` on Codex. Never hardcode `/`: if the user typed the invocation that started this skill, copy its prefix; otherwise use this host's own.

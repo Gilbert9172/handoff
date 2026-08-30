@@ -221,6 +221,8 @@ pct=$((used * 100 / limit))
 | 2 | 50% | `HANDOFF_BAND_2` | 🟠 | 한두 문장으로 분명하게 권장 |
 | 3 | 75% | `HANDOFF_BAND_3` | 🔴 | 강하게 권고, 예/아니오 질문 금지, 직접 저장 금지 |
 
+세 밴드가 안내하는 커맨드의 접두사는 `HANDOFF_CMD_PREFIX`로 바꾼다(기본 `/`). 이 훅은 지금 `hooks/hooks.json`, 즉 Claude adapter에서만 등록되므로 기본값이 `/`로 정확하고, Codex처럼 `$` 표기를 쓰는 host에 같은 스크립트를 직접 연결할 때만 `$`로 바꾸면 된다. skill이 출력하는 안내 문구 쪽은 이 변수를 쓰지 않고 각 SKILL.md의 `## Command notation` 규칙(설계문서 §7.4)을 따른다.
+
 한도는 `HANDOFF_CONTEXT_LIMIT`로 조정하며 기본값은 1000000이다. Claude 경로에서는 훅이 사용량만 읽을 수 있고 세션의 실제 한도는 알 수 없어서 이 값을 고정 가정으로 쓴다. 200K 컨텍스트 세션에서 기본값을 그대로 두면 한도를 5배로 잡은 셈이라 밴드가 훨씬 늦게 뜨므로, `HANDOFF_CONTEXT_LIMIT=200000`으로 맞춰야 한다. Codex 경로는 앞서 본 대로 `model_context_window`를 읽으므로 이 설정이 필요 없다.
 
 ### 세션당 한 번만 알리는 방법

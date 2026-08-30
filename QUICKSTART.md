@@ -67,6 +67,8 @@
 | `/handoff:resume [슬러그]` | 작업 재개 | `/handoff:resume api-docs` |
 | `/handoff:delete [슬러그]` | 노트 삭제 | `/handoff:delete api-docs` |
 
+> Codex에서는 skill 호출 접두사가 `$`입니다 — `$handoff:save`, `$handoff:list`처럼 입력하세요. 이 문서는 Claude Code 표기(`/`)로 씁니다.
+
 ---
 
 ## 5️⃣ 노트 구조 (저장 시 채워지는 섹션)
