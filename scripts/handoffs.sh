@@ -47,12 +47,6 @@ case "${1:-}" in
     session=$(printf '%s' "$input" | sed -n 's/.*"session_id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
     if [ -z "$transcript" ] || [ ! -f "$transcript" ]; then exit 0; fi
 
-    # Hosts type the command differently: "/handoff:save" on Claude Code,
-    # "$handoff:save" on Codex. Only hooks/hooks.json (the Claude adapter) registers
-    # this hook today, so "/" is the right default; HANDOFF_CMD_PREFIX overrides it
-    # for any host that wires the same script into its own prompt hook.
-    prefix="${HANDOFF_CMD_PREFIX:-/}"
-
     band1="${HANDOFF_BAND_1:-35}"
     band2="${HANDOFF_BAND_2:-50}"
     band3="${HANDOFF_BAND_3:-75}"
@@ -86,6 +80,16 @@ claude-sonnet-4-6 1000000'
     else
       codex_chunk=""
     fi
+
+    # Hosts type the command differently: "/handoff:save" on Claude Code,
+    # "$handoff:save" on Codex. Both hosts register this same hook (confirmed via
+    # a live Codex install's config.toml, contra the earlier "Claude-only" assumption),
+    # so reuse the transcript-shape detection above rather than always defaulting to
+    # "/". HANDOFF_CMD_PREFIX still overrides this for any host whose transcript this
+    # detection cannot classify.
+    default_prefix='/'
+    [ -n "$codex_chunk" ] && default_prefix='$'
+    prefix="${HANDOFF_CMD_PREFIX:-$default_prefix}"
 
     if [ -n "$codex_chunk" ]; then
       last_line=$(printf '%s\n' "$codex_chunk" | grep '"type":"token_count"' | tail -n 1)

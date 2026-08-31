@@ -135,7 +135,7 @@ Thresholds are configurable via environment variables:
 | `HANDOFF_BAND_2` | `50` | 🟠 stage 2 usage (%) |
 | `HANDOFF_BAND_3` | `75` | 🔴 stage 3 usage (%) |
 | `HANDOFF_CONTEXT_LIMIT` | detected by model | Override for this session's context window size (tokens) |
-| `HANDOFF_CMD_PREFIX` | `/` | Command prefix used in the hook's message. The hook is only registered on Claude Code today, hence the `/` default — set it to `$` if you wire the same script into a Codex hook yourself |
+| `HANDOFF_CMD_PREFIX` | auto-detected (`/` or `$`) | Command prefix used in the hook's message. Auto-detected from the transcript shape (Claude Code → `/`, Codex → `$`); set this to override the detected value |
 
 > For Claude, the hook reads the model from assistant messages in the transcript, uses 1,000,000 for known 1M models, and uses 200,000 for every other model. For Codex, it uses the transcript's `model_context_window`. Set `HANDOFF_CONTEXT_LIMIT` explicitly only when automatic detection does not fit a custom deployment.
 

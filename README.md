@@ -135,7 +135,7 @@
 | `HANDOFF_BAND_2` | `50` | 🟠 2단계 사용률(%) |
 | `HANDOFF_BAND_3` | `75` | 🔴 3단계 사용률(%) |
 | `HANDOFF_CONTEXT_LIMIT` | 모델별 자동 감지 | 이 세션의 컨텍스트 윈도우 크기 override(토큰) |
-| `HANDOFF_CMD_PREFIX` | `/` | 훅 메시지에 쓸 커맨드 접두사. 이 훅은 현재 Claude Code에만 등록되므로 기본값이 `/`이고, 같은 스크립트를 Codex 훅으로 직접 연결했다면 `$`로 바꾸세요 |
+| `HANDOFF_CMD_PREFIX` | 자동 감지 (`/` 또는 `$`) | 훅 메시지에 쓸 커맨드 접두사. transcript 형식으로 Claude Code(`/`)와 Codex(`$`)를 자동 구분하며, 이 변수를 지정하면 그 값이 우선합니다 |
 
 > Claude transcript의 assistant message에서 모델을 읽어 1M 모델은 1,000,000으로 계산하고, 그 외 모델은 200,000으로 계산합니다. Codex는 transcript의 `model_context_window` 값을 사용합니다. 자동 감지가 맞지 않는 custom deployment에서는 `HANDOFF_CONTEXT_LIMIT`로 직접 지정할 수 있습니다.
 

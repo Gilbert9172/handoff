@@ -2,6 +2,7 @@
 
 > 상태: Draft
 > 작성일: 2026-08-27
+> 개정일: 2026-08-31 — §7.4 정정: hook은 Claude 전용이 아니라 Codex에도 등록됨을 실측 확인, `HANDOFF_CMD_PREFIX` 기본값을 transcript 자동 감지로 교체
 > 개정일: 2026-08-30 — §7.4 커맨드 표기(호출 접두사) 결정 추가
 > 개정일: 2026-08-29 — §10 저장 위치 결정 확정(`~/.handoffs/<project-slug>/`, flat, 즉시 전환); §14 프로젝트 식별 방식 미결정 해소 (2026-08-27 — `skills/` 단일화 결정, 전환 검증 순서, `save` 대상 판정 및 실패 처리 반영)
 > 대상: Claude Code 및 Codex 로컬 환경
@@ -321,7 +322,7 @@ Anthropic은 새 플러그인에 `skills/` 사용을 권장하며, OpenAI의 공
 
 **대안으로 검토했다가 채택하지 않은 것: 환경변수 기반 host 감지.** `handoffs.sh`에 `prefix` 서브커맨드를 두고 `CLAUDECODE`(Claude Code가 모든 tool shell에 넣는 것을 실측 확인)와 `CODEX_*`로 판별하는 안이었다. 채택하지 않은 이유는 두 가지다 — (a) Codex 쪽 신호는 실측하지 못했다. 바이너리(`codex 0.151.0`)에 `CODEX_SANDBOX`, `CODEX_SANDBOX_NETWORK_DISABLED`, `CODEX_THREAD_ID` 문자열이 존재하는 것까지만 확인했고, 이 중 무엇이 **모든 실행 모드에서** skill의 shell에 실제로 주입되는지는 확인하지 못했다. (b) 감지에 성공하더라도 "출력할 때 이 값을 치환하라"는 지시 이행 문제는 그대로 남으므로, shell 왕복 한 번을 더 들이고 미검증 감지를 넣는 대가에 비해 얻는 게 작다.
 
-**hook 메시지는 예외적으로 기본값 `/`를 유지한다.** `context-check`가 출력하는 배너·additionalContext는 지금 `hooks/hooks.json`(Claude adapter)에서만 등록되므로 `/`가 정확한 값이다. 다른 host가 같은 스크립트를 자기 prompt hook에 연결하는 경우를 위해 `HANDOFF_CMD_PREFIX` 환경변수 override만 열어둔다(기존 `HANDOFF_BAND_*`, `HANDOFF_CONTEXT_LIMIT`와 같은 성격의 escape hatch). Codex hook 지원이 §14대로 실측되면 그때 이 기본값을 재검토한다.
+**hook 메시지는 예외적으로 기본값 `/`를 유지한다.** ~~`context-check`가 출력하는 배너·additionalContext는 지금 `hooks/hooks.json`(Claude adapter)에서만 등록되므로 `/`가 정확한 값이다.~~ **정정 (2026-08-31):** 이 전제가 틀렸다. 실제 Codex 설치의 `config.toml`에 `hooks.state."handoff@gilbert9172:hooks/hooks.json:user_prompt_submit:0:0"` 항목이 있고, 해당 세션의 rollout에도 이 hook의 `additionalContext`가 `/handoff:save`를 하드코딩한 채로 주입된 것이 실측됐다 — 즉 Codex도 같은 `hooks/hooks.json`을 그대로 등록해서 쓰고 있었고, 고정 기본값 `/`가 Codex 세션에도 새어 들어가 모델이 잘못된 표기를 그대로 옮기는 사례(사용자 리포트, 2026-08-31)로 이어졌다. `context-check`는 이미 컨텍스트 한도 계산을 위해 transcript에 `model_context_window` 필드가 있는지로 Codex/Claude를 구분하고 있었으므로(§9.4), 같은 판별을 재사용해 `HANDOFF_CMD_PREFIX`의 기본값 자체를 Codex transcript면 `$`, Claude transcript면 `/`로 자동 결정하도록 바꿨다. 환경변수 override는 이 자동 감지가 통하지 않는 host를 위한 escape hatch로 그대로 남긴다(기존 `HANDOFF_BAND_*`, `HANDOFF_CONTEXT_LIMIT`와 같은 성격).
 
 ## 8. 모델 정책
 
