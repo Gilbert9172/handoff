@@ -1,0 +1,3 @@
+interface:
+  display_name: "Finish handoff"
+  short_description: "Seal a handoff whose work is over"

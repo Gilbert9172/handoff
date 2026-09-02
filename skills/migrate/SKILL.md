@@ -8,7 +8,7 @@ allowed-tools:
 
 ## Why this exists
 
-Earlier versions of this plugin stored handoffs under `~/.claude/projects/<project-slug>/handoffs/`. That path is gone — `save`, `list`, `resume`, and `delete` now only look at `~/.handoffs/<project-slug>/`. Nothing was deleted, but anything still sitting at the old path is invisible to those four skills until it's moved here.
+Earlier versions of this plugin stored handoffs under `~/.claude/projects/<project-slug>/handoffs/`. That path is gone — `save`, `list`, `resume`, `finish`, and `delete` now only look at `~/.handoffs/<project-slug>/`. Nothing was deleted, but anything still sitting at the old path is invisible to those skills until it's moved here.
 
 This skill only moves files for the **current project's exact slug** (same git-root-derived slug on both sides — see below). It does not go looking for the same logical project under a different absolute path (e.g. after the repo itself was moved or re-cloned elsewhere) — if that's the situation, tell the user to move those files by hand; reconciling different slugs isn't this skill's job.
 
@@ -17,8 +17,8 @@ This skill only moves files for the **current project's exact slug** (same git-r
 ```sh
 sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" dir           # current (new) directory
 sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" dir legacy    # old directory
-sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" scan          # current handoffs: slug, updated, Goal
-sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" scan legacy   # old handoffs: slug, updated, Goal
+sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" scan          # current handoffs: slug, updated, lines, status, Goal
+sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" scan legacy   # old handoffs: same columns
 ```
 
 (`${CLAUDE_PLUGIN_ROOT}` is this plugin's installation directory. If the variable is unavailable, the plugin root is two directories above this skill's base directory.)

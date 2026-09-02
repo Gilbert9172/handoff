@@ -39,10 +39,10 @@ A plugin that keeps you from **losing your place as you switch between tasks**. 
 
 🌅 **Starting a session** — run `/handoff:list` to see what's where at a glance.
 
-| Slug | Updated | Goal |
-|------|---------|------|
-| auction-state-machine | 2026-06-11 | Design the won→payment state transitions |
-| batch-php-migration | 2026-06-13 | Migrate the legacy PHP batch jobs to the new runtime |
+| Slug | Updated | Lines | Goal |
+|------|---------|-------|------|
+| auction-state-machine | 2026-06-11 | 52 | Design the won→payment state transitions |
+| batch-php-migration | 2026-06-13 | 88 | Migrate the legacy PHP batch jobs to the new runtime |
 
 ```shell
 /handoff:resume batch-php-migration   # pick this one up today
@@ -51,8 +51,10 @@ A plugin that keeps you from **losing your place as you switch between tasks**. 
 /handoff:save              # without a title — auto-updates the matching note or creates a new one
 
 # ✨ When a task is done
-/handoff:delete batch-php-migration   # clean up
+/handoff:finish batch-php-migration   # seal it into done/
 ```
+
+A sealed note drops out of the list and `save` no longer appends to it. The record stays in `done/` — view it with `/handoff:list --done`, and use `/handoff:delete` only when you want it gone for good.
 
 ---
 
@@ -61,9 +63,11 @@ A plugin that keeps you from **losing your place as you switch between tasks**. 
 | Command | Purpose | Example |
 |---------|---------|---------|
 | `/handoff:save [title]` | Save / update current work | `/handoff:save api-docs` |
+| `/handoff:save --compact` | Condense a long note (work continues) | `/handoff:save api-docs --compact` |
 | `/handoff:list` | List all handoffs | `/handoff:list` |
 | `/handoff:resume [slug]` | Resume a task | `/handoff:resume api-docs` |
-| `/handoff:delete [slug]` | Delete a note | `/handoff:delete api-docs` |
+| `/handoff:finish [slug]` | Seal finished work | `/handoff:finish api-docs` |
+| `/handoff:delete [slug]` | Delete a note for good | `/handoff:delete api-docs` |
 
 > Codex invokes skills with `$` — type `$handoff:save`, `$handoff:list`, and so on. This document uses Claude Code's `/` notation.
 

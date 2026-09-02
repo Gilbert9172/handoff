@@ -46,7 +46,7 @@
 /reload-plugins          # 현재 세션에 바로 반영
 ```
 
-설치되면 `/handoff:save`, `/handoff:list`, `/handoff:resume`, `/handoff:delete` 커맨드가 생깁니다.
+설치되면 `/handoff:save`, `/handoff:list`, `/handoff:resume`, `/handoff:finish`, `/handoff:delete` 커맨드가 생깁니다.
 
 ### 3) 확인
 
@@ -81,35 +81,66 @@
 
 | 커맨드 | 용도 | 인자 |
 |--------|------|------|
-| `/handoff:save [제목]` | 현재 작업을 인계 노트로 저장/업데이트 | 제목(선택) |
-| `/handoff:list` | 이 프로젝트의 handoff 목록 보기 | 없음 |
+| `/handoff:save [제목] [--compact]` | 현재 작업을 인계 노트로 저장/업데이트 | 제목(선택), `--compact`(선택) |
+| `/handoff:list [--done]` | 이 프로젝트의 handoff 목록 보기 | `--done`(선택) |
 | `/handoff:resume [슬러그]` | 노트를 읽고 Next Steps부터 작업 재개 | 슬러그(선택) |
-| `/handoff:delete [슬러그]` | 끝났거나 버린 작업의 노트 삭제 | 슬러그(선택) |
+| `/handoff:finish [슬러그]` | 끝난 작업의 노트를 종료 처리(봉인) | 슬러그(선택) |
+| `/handoff:delete [슬러그]` | 노트를 완전히 삭제 | 슬러그(선택) |
 
-> **Codex에서는 접두사가 `$`입니다.** Codex는 skill을 `$`로 호출하므로 같은 커맨드를 `$handoff:save`, `$handoff:list`, `$handoff:resume`, `$handoff:delete`로 입력하세요. 이 문서의 나머지 표기는 Claude Code 기준(`/`)입니다.
+> **Codex에서는 접두사가 `$`입니다.** Codex는 skill을 `$`로 호출하므로 같은 커맨드를 `$handoff:save`, `$handoff:list`, `$handoff:resume`, `$handoff:finish`, `$handoff:delete`로 입력하세요. 이 문서의 나머지 표기는 Claude Code 기준(`/`)입니다.
 
-### `/handoff:save [제목]`
+### 노트의 일생
+
+```
+save ──▶ (작업 중, resume/save 반복) ──▶ finish ──▶ done/ 보관
+                                                      └──▶ delete (완전 삭제)
+```
+
+`finish`는 **끝났다고 선언**하는 것이고 `delete`는 **파일을 없애는** 것입니다. finish한 노트는 `done/`에 남아 기록으로 볼 수 있고, list·resume 후보에서만 빠집니다.
+
+### `/handoff:save [제목] [--compact]`
 
 세션을 마무리하거나 다른 작업으로 넘어갈 때 진행 상황을 기록합니다.
 
 - **제목을 주면** 그 제목을 슬러그로 변환해(소문자, 공백→`-`) 해당 파일을 저장/업데이트합니다.
 - **제목이 없으면** 기존 handoff를 훑어보고 *같은 작업*이면 그 파일을 갱신, *새 작업*이면 Goal에서 슬러그를 뽑아 새로 만듭니다. 애매하면 어떤 걸 쓸지 물어봅니다.
+- **이미 finish한 노트에는 덧붙이지 않습니다.** 이어서 할 일이 생겼다면 그건 새 작업이므로 새 노트를 만듭니다.
 - 저장 후 **전체 파일 경로**와 **재개 명령(`/handoff:resume <슬러그>`)** 을 알려줍니다.
+- 문서가 **200줄을 넘으면** 정리할지 물어봅니다. 저장을 막지는 않습니다.
 
-### `/handoff:list`
+**`--compact`** — 쌓인 기록을 압축합니다. 작업은 계속되므로 **보수적으로** 줄입니다: 오래된 What Worked / What Didn't Work 항목만 한 줄로 묶고, 최근 기록과 Goal · Current Progress · Next Steps는 그대로 둡니다. 실패한 접근은 통째로 지우지 않습니다 — 그걸 잃으면 같은 실수를 반복하게 되니까요.
 
-이 프로젝트의 모든 handoff를 표로 보여줍니다 — **Slug · Updated · Goal**. 읽기 전용이라 아무것도 바꾸지 않습니다.
+압축은 **종료가 아닙니다.** 노트는 계속 살아 있고, 끝내는 건 `finish`입니다.
+
+### `/handoff:list [--done]`
+
+이 프로젝트의 진행 중인 handoff를 표로 보여줍니다 — **Slug · Updated · Lines · Goal**. 읽기 전용이라 아무것도 바꾸지 않습니다.
+
+- **`--done`** — finish로 봉인된 노트를 대신 보여줍니다 (**Slug · Sealed · Status · Goal**).
 
 ### `/handoff:resume [슬러그]`
 
 - **슬러그를 주면** 그 노트를 읽고, **없으면** 목록을 보여줍니다.
 - **슬러그가 없을 때** — 노트가 1개면 자동 선택, 여러 개면 선택지를 물어보고, 없으면 `/handoff:save`를 제안합니다.
 - 노트를 전부 읽은 뒤 **Goal · What Worked · Next Steps를 짧게 요약**해 방향을 확인하고, **Next Steps부터 실행**합니다. **What Didn't Work**에 적힌 실패 방법은 다시 시도하지 않습니다.
+- finish된 노트는 후보에서 빠집니다.
+- 작업이 일단락되면 **다음에 뭘 쓸지 한 줄로 안내**합니다 — 더 할 게 남았으면 `save`, 완전히 끝났으면 `finish`, 목표 자체가 바뀌었으면 새 노트. 묻고 막지는 않습니다.
+
+### `/handoff:finish [슬러그]`
+
+작업이 완전히 끝났을 때 그 노트를 봉인합니다.
+
+- **Goal · Current Progress · 남은 Next Steps**를 보여준 뒤, 어떻게 끝났는지 고릅니다 — **done**(목표 달성) 또는 **abandoned**(중단, 사유 한 줄).
+- 문서 맨 위에 `**Status**: done (2026-09-01)` 같은 줄을 남기고 `done/`으로 옮깁니다.
+- 봉인 후에는 list·resume에 뜨지 않고, save도 덧붙이지 않습니다. 파일은 그대로 남아 있습니다.
+
+> **끝났는지는 사용자가 정합니다.** Next Steps가 남아 있어도 봉인을 막지 않습니다 — 도중에 방향이 바뀌어 원래 계획이 폐기됐을 수 있으니까요. 남은 항목을 알려주되 판단은 하지 않고, 이 커맨드는 **자동으로 실행되지 않습니다.**
 
 ### `/handoff:delete [슬러그]`
 
-- 삭제는 **되돌릴 수 없어** 삭제 전 슬러그·Goal을 보여주고 확인을 받습니다.
-- 슬러그 없이 실행하면 여러 개를 골라 한 번에 정리할 수 있습니다(완료된 작업 일괄 정리용).
+- 삭제는 **되돌릴 수 없어** 삭제 전 슬러그·위치(진행 중 / 봉인)·Goal을 보여주고 확인을 받습니다.
+- 슬러그 없이 실행하면 진행 중 노트와 봉인된 노트를 함께 보여주고, 여러 개를 골라 한 번에 정리할 수 있습니다.
+- 기록을 남기고 싶다면 삭제 대신 `/handoff:finish`를 쓰세요.
 
 ---
 
@@ -170,6 +201,8 @@
 - **What Worked · What Didn't Work** → 기존 내용에 **누적**(과거 기록을 지우지 않음)
 - **Goal** → 작업 자체가 바뀌지 않는 한 그대로 둠
 
+노트가 길어지면 `/handoff:save --compact`로 오래된 기록만 묶어 줄일 수 있습니다. 이때도 실패한 접근은 남깁니다.
+
 ---
 
 ## 저장 위치
@@ -177,7 +210,8 @@
 handoff는 저장소가 아니라 홈 디렉토리의 프로젝트별 폴더에 저장됩니다. Claude Code와 Codex 어느 쪽에서 저장·조회하든 같은 경로를 씁니다:
 
 ```
-~/.handoffs/<프로젝트-슬러그>/HANDOFF-<슬러그>.md
+~/.handoffs/<프로젝트-슬러그>/HANDOFF-<슬러그>.md        # 진행 중
+~/.handoffs/<프로젝트-슬러그>/done/HANDOFF-<슬러그>.md   # finish로 봉인됨
 ```
 
 `<프로젝트-슬러그>`는 **git 루트 경로**의 `/`를 `-`로 바꾼 값입니다(git 저장소가 아니면 현재 디렉토리 기준). git 루트를 쓰므로 하위 디렉토리에서 세션을 시작해도 이전 handoff를 찾고, Claude와 Codex가 같은 저장소를 열면 host와 무관하게 같은 슬러그·같은 폴더로 계산됩니다.
@@ -189,6 +223,8 @@ handoff는 저장소가 아니라 홈 디렉토리의 프로젝트별 폴더에 
 ```
 
 (같은 폴더에 작업별 노트가 나란히 쌓입니다 — 위 [어떻게 병렬이 되나](#어떻게-병렬이-되나) 참고.) 필요하면 이 파일들을 에디터로 직접 열어 수정해도 됩니다.
+
+**봉인은 위치로 표현됩니다.** `finish`한 노트는 `done/` 하위로 옮겨지므로, list와 resume이 실수로 집어 올릴 여지가 없습니다. 파일 안의 `**Status**:` 줄은 왜 끝났는지를 사람이 읽기 위한 기록입니다.
 
 **이전 버전에서 저장한 handoff가 안 보인다면**, 예전에는 `~/.claude/projects/<슬러그>/handoffs/`에 저장했습니다. `/handoff:migrate`를 실행하면 같은 프로젝트(같은 슬러그)의 옛 문서를 위 새 경로로 옮겨줍니다 — 저장소를 다른 절대경로로 옮겨서 슬러그 자체가 달라진 경우는 자동으로 찾지 못하니 그때는 파일을 직접 옮기세요. 이 커맨드는 과도기용 임시 기능이라 나중 버전에서 제거될 수 있습니다.
 
@@ -202,11 +238,11 @@ handoff는 저장소가 아니라 홈 디렉토리의 프로젝트별 폴더에 
 /handoff:list
 ```
 
-| Slug | Updated | Goal |
-|------|---------|------|
-| auction-state-machine | 2026-06-11 | 낙찰→납부 상태 전이 설계 |
-| batch-php-migration | 2026-06-13 | 레거시 PHP 배치를 신규 런타임으로 이관 |
-| settlement-interface | 2026-06-10 | 정산 인터페이스 초안 작성 |
+| Slug | Updated | Lines | Goal |
+|------|---------|-------|------|
+| auction-state-machine | 2026-06-11 | 52 | 낙찰→납부 상태 전이 설계 |
+| batch-php-migration | 2026-06-13 | 88 | 레거시 PHP 배치를 신규 런타임으로 이관 |
+| settlement-interface | 2026-06-10 | 34 | 정산 인터페이스 초안 작성 |
 
 ```shell
 /handoff:resume batch-php-migration   # 오늘은 이거 이어서
@@ -241,9 +277,22 @@ handoff는 저장소가 아니라 홈 디렉토리의 프로젝트별 폴더에 
 /handoff:resume batch-php-migration   # 다음 세션에서 이어서
 # ... 작업 ...
 /handoff:save batch-php-migration     # 진행 상황 갱신
-# ... 완료되면 ...
-/handoff:delete batch-php-migration   # 정리
+# ... 기록이 길어졌다면 ...
+/handoff:save batch-php-migration --compact   # 오래된 기록만 압축, 작업은 계속
+# ... 완전히 끝났다면 ...
+/handoff:finish batch-php-migration   # 종료 처리 — done/ 으로 봉인
 ```
+
+`finish`는 어떻게 끝났는지(**done** / **abandoned**)를 묻고 문서 맨 위에 남깁니다:
+
+```markdown
+**Status**: done (2026-06-20)
+
+# Goal
+레거시 PHP 배치를 신규 런타임으로 마이그레이션
+```
+
+봉인된 노트는 `/handoff:list --done`으로 볼 수 있고, 정말 지우고 싶을 때만 `/handoff:delete`를 씁니다.
 
 ---
 
@@ -275,11 +324,13 @@ handoff는 저장소가 아니라 홈 디렉토리의 프로젝트별 폴더에 
 
 ## 동작 원리 (참고)
 
-네 커맨드는 공통 스크립트 하나(`scripts/handoffs.sh`)를 공유해 경로·스캔 로직을 동일하게 씁니다.
+모든 커맨드는 공통 스크립트 하나(`scripts/handoffs.sh`)를 공유해 경로·스캔 로직을 동일하게 씁니다.
 
 ```sh
-sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" dir    # 이 프로젝트의 handoff 디렉토리
-sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" scan   # 노트별: 슬러그 · 수정일 · Goal 첫 문단
+sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" dir         # 이 프로젝트의 handoff 디렉토리
+sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" dir done    # 봉인된 노트 보관 폴더
+sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" scan        # 진행 중 노트별: 슬러그 · 수정일 · 줄 수 · 상태 · Goal 첫 문단
+sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" scan done   # 봉인된 노트, 같은 컬럼
 ```
 
 `${CLAUDE_PLUGIN_ROOT}`는 플러그인 설치 경로로 자동 주입됩니다. 별도 인덱스 파일 없이 `scan`이 매번 디렉토리를 훑으므로, 목록이 실제 파일과 어긋날 일이 없습니다.
@@ -292,7 +343,7 @@ sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" scan   # 노트별: 슬러그 · 
 
 | 항목 | 원본 | 이 플러그인 |
 |------|------|------------|
-| 형태 | 단일 skill (저장만) | 4개 커맨드(save·list·resume·delete) — 라이프사이클 전체 |
+| 형태 | 단일 skill (저장만) | 5개 커맨드(save·list·resume·finish·delete) — 라이프사이클 전체 |
 | 파일 | `HANDOFF.md` 1개 고정 | `HANDOFF-<슬러그>.md` 작업별 N개 |
 | 저장 위치 | 레포 루트 | `~/.handoffs/<슬러그>/` (홈, host 중립) |
 | 스코핑 | 없음(cwd) | git 루트 기준 슬러그 |
@@ -303,7 +354,8 @@ sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" scan   # 노트별: 슬러그 · 
 표의 구조적 차이(작업별 파일 · 홈 저장 · git 루트 스코핑)가 *왜* 중요한지는 위 [어떻게 병렬이 되나](#어떻게-병렬이-되나) · [저장 위치](#저장-위치)에서 다뤘습니다. 그 위에 원본에 없던 세 가지를 더했습니다.
 
 - **resume** — 노트를 읽고 Goal·What Worked·Next Steps를 요약한 뒤 *실행 전에 멈춰* 확인을 받습니다(재개는 컨텍스트 로드이지 계획 승인이 아니므로).
-- **delete** — 끝난 작업을 정리해 노트가 무한히 쌓이지 않도록 라이프사이클을 닫습니다.
+- **finish** — 끝난 작업을 봉인해 라이프사이클을 닫습니다. 이게 있어야 노트가 무한히 커지지 않습니다 — 봉인된 노트에는 더 이상 덧붙지 않으므로, 다음 작업은 자연히 새 노트가 됩니다. 끝났는지 판단하는 건 언제나 사용자이고, 다른 커맨드는 알릴 뿐 대신 결정하지 않습니다.
+- **delete** — 봉인된 기록까지 정리하고 싶을 때 파일을 완전히 지웁니다.
 - **인덱스리스** — 목록을 매번 `scan`으로 만들어, 인덱스와 실제 파일이 어긋나는 동기화 버그를 원천 차단합니다.
 
 ---

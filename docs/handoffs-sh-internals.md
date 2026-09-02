@@ -17,14 +17,18 @@
 
 | 서브커맨드 | 호출 지점 | 출력 | 종료 코드 |
 | --- | --- | --- | --- |
-| `dir` | `save`, `resume`, `delete`, `migrate` skill | handoff 디렉토리 절대경로 1줄 | 0 |
+| `dir` | `save`, `resume`, `finish`, `delete`, `migrate` skill | handoff 디렉토리 절대경로 1줄 | 0 |
+| `dir done` | `finish`, `delete` skill | 봉인 보관 디렉토리(`<dir>/done`) 절대경로 1줄 | 0 |
 | `dir legacy` | `migrate` skill | 옛(`~/.claude/projects/...`) handoff 디렉토리 절대경로 1줄 | 0 |
-| `scan` | `list`, `save`, `resume`, `delete`, `migrate` skill | handoff 1개당 TSV 1줄 | 0 |
+| `scan` | `list`, `save`, `resume`, `finish`, `delete`, `migrate` skill | 진행 중 handoff 1개당 TSV 1줄 | 0 |
+| `scan done` | `list`, `delete` skill | 봉인된 handoff 기준으로 같은 TSV | 0 |
 | `scan legacy` | `migrate` skill | 옛 위치 기준으로 같은 TSV | 0 |
 | `context-check` | `UserPromptSubmit` 훅 | 훅 JSON 1줄 또는 무출력 | 0 |
 | 그 외 | — | usage(stderr) | 2 |
 
-`legacy`는 `dir`/`scan`의 두 번째 인자로만 받는다. 다른 subcommand는 아니다 — 경로를 계산하는 대상만 바뀌고 로직은 완전히 동일하므로, `migrate`가 새/옛 두 위치를 같은 코드 경로로 스캔하게 하는 게 목적이다.
+두 번째 인자(`done`, `legacy`)는 `dir`/`scan`에서만 받는다. 다른 subcommand는 아니다 — 경로를 계산하는 대상만 바뀌고 로직은 완전히 동일하므로, 하나의 코드 경로로 여러 위치를 스캔하게 하는 게 목적이다.
+
+`done`이 하위 디렉토리인 것은 구현 편의가 아니라 계약이다. `scan`의 glob은 `"$target"/HANDOFF-*.md`이고 셸 glob은 하위 디렉토리를 내려가지 않으므로, **봉인된 문서는 기본 `scan`에 원리적으로 잡히지 않는다.** `list`와 `resume`이 끝난 작업을 실수로 집어 올릴 여지가 필터 로직이 아니라 파일 위치로 차단된다.
 
 훅 등록은 `hooks/hooks.json` 한 곳에서 하며, 타임아웃 10초를 준다.
 
@@ -43,10 +47,15 @@ dir="$HOME/.handoffs/$slug"
 legacy_dir="$HOME/.claude/projects/$slug/handoffs"
 
 target="$dir"
-[ "${2:-}" = "legacy" ] && target="$legacy_dir"
+case "${2:-}" in
+  legacy) target="$legacy_dir" ;;
+  done)   target="$dir/done" ;;
+esac
 ```
 
-`dir`과 `scan`은 두 번째 인자가 `legacy`일 때만 `legacy_dir`을 본다. 나머지는 전부 지금까지와 동일하게 `dir`(현재 위치)을 대상으로 한다.
+`dir`과 `scan`은 두 번째 인자가 `legacy`나 `done`일 때만 대상을 바꾼다. 인자가 없으면 전부 `dir`(진행 중 위치)을 본다.
+
+`done`은 sh의 예약어지만 `case` 패턴 자리에서는 일반 단어로 취급되므로 그대로 쓸 수 있다.
 
 기준점은 git 저장소 루트다. `git rev-parse`가 실패하면(저장소가 아니면) 현재 디렉토리로 떨어진다. 저장소 안에서는 하위 디렉토리 어디서 호출하든 같은 `dir`이 나오므로, 같은 프로젝트의 handoff가 작업 위치에 따라 흩어지지 않는다.
 
@@ -54,14 +63,14 @@ target="$dir"
 
 이 규칙에는 대가가 있다. 프로젝트를 다른 경로로 옮기면(또는 서로 다른 절대경로에 clone/worktree를 두면) slug가 바뀌고, 이전 handoff는 옛 slug 아래에 남아 조회되지 않는다. 이 한계는 host를 가리지 않고 동일하게 적용되며, 자동으로 해소하지 않고 사용자가 수동으로 처리하는 것으로 남겨둔다.
 
-**이전 위치와의 호환은 자동이 아니라 명시적이다.** `~/.claude/projects/<slug>/handoffs/`에 저장된 기존 문서는 경로 변경만으로는 여전히 보이지 않는다 — `list`/`save`/`resume`/`delete`는 `legacy` 인자를 쓰지 않으므로 새 위치만 본다. `migrate` skill이 `dir legacy`·`scan legacy`로 옛 위치를 읽어, 같은 slug의 파일만 사용자 확인 후 새 위치로 옮긴다. slug 자체가 다른 경우(§10.1의 "받아들인 한계" — 프로젝트를 다른 절대경로로 옮긴 경우)는 `migrate`도 찾지 않는다.
+**이전 위치와의 호환은 자동이 아니라 명시적이다.** `~/.claude/projects/<slug>/handoffs/`에 저장된 기존 문서는 경로 변경만으로는 여전히 보이지 않는다 — `list`/`save`/`resume`/`finish`/`delete`는 `legacy` 인자를 쓰지 않으므로 새 위치만 본다. `migrate` skill이 `dir legacy`·`scan legacy`로 옛 위치를 읽어, 같은 slug의 파일만 사용자 확인 후 새 위치로 옮긴다. slug 자체가 다른 경우(§10.1의 "받아들인 한계" — 프로젝트를 다른 절대경로로 옮긴 경우)는 `migrate`도 찾지 않는다.
 
 ## scan: Goal 문단 추출
 
-`scan`은 `HANDOFF-*.md` 파일마다 한 줄씩, 탭으로 구분된 세 필드를 출력한다.
+`scan`은 `HANDOFF-*.md` 파일마다 한 줄씩, 탭으로 구분된 다섯 필드를 출력한다 — slug, 수정일, 줄 수, 상태, Goal 첫 문단.
 
 ```
-multi-platform-handoff-plugin	2026-08-28	`handoff` 플러그인(현재 v1.3.2, ...)을 provider-neutral 플러그인으로 재구성한다.
+multi-platform-handoff-plugin	2026-08-28	46	active	`handoff` 플러그인(현재 v1.3.2, ...)을 provider-neutral 플러그인으로 재구성한다.
 ```
 
 slug는 파일명에서 `HANDOFF-` 접두사와 `.md` 확장자를 벗겨 얻는다. 수정일은 `stat`의 플랫폼 차이를 두 번 시도로 흡수한다.
@@ -73,7 +82,20 @@ updated=$(stat -c '%y' "$f" 2>/dev/null | cut -d' ' -f1)
 
 앞 줄은 GNU coreutils(Linux), 뒷 줄은 BSD(macOS) 문법이다. macOS에서는 첫 시도가 실패해 빈 문자열이 되고 두 번째 줄이 값을 채운다.
 
-세 번째 필드가 이 서브커맨드의 핵심이다. `awk` 상태 기계로 `# Goal` 헤딩 다음의 **첫 문단만** 뽑는다.
+줄 수(`wc -l`)는 `save`가 문서 비대화를 알리는 근거로 쓴다. 임계값 판단은 스크립트가 아니라 skill 쪽에 둔다 — 스크립트는 사실만 내고, 무엇을 크다고 볼지는 정책이기 때문이다.
+
+상태는 문서의 `**Status**:` 줄 첫 단어에서 뽑고, 없으면 `active`다.
+
+```sh
+status=$(sed -n 's/^\*\*Status\*\*:[[:space:]]*\([A-Za-z]*\).*/\1/p' "$f" | head -n 1)
+[ -n "$status" ] || status=active
+```
+
+첫 단어만 뽑으므로 `abandoned (2026-09-01) — 사유...` 같은 줄에서도 `abandoned`만 남는다. 사유가 여러 줄이면 이 파싱이 깨지므로, `finish`는 사유를 반드시 한 줄에 쓴다.
+
+이 필드는 표시용이다. 봉인 여부를 가르는 건 파일 위치(`done/`)이지 이 값이 아니다 — 문서 안의 한 줄은 사람이 편집하다 깨질 수 있지만 위치는 그렇지 않다.
+
+마지막 필드가 이 서브커맨드의 핵심이다. `awk` 상태 기계로 `# Goal` 헤딩 다음의 **첫 문단만** 뽑는다.
 
 ```awk
 /^#+ *Goal/{g=1; next}                                  # Goal 헤딩을 만나면 수집 시작
@@ -85,7 +107,9 @@ END{print out}
 
 `got` 플래그가 "헤딩 바로 아래 빈 줄"과 "문단이 끝난 빈 줄"을 구분한다. 아직 아무것도 모으지 않았으면 빈 줄을 건너뛰고, 한 줄이라도 모았으면 그 빈 줄에서 멈춘다. 여러 줄에 걸친 문단은 공백 하나로 이어 붙여 한 줄로 만든다.
 
-`gsub(/\t/," ")`는 장식이 아니라 출력 포맷을 지키는 장치다. 출력이 탭 구분 형식이므로 본문에 탭이 남으면 필드 경계가 깨진다. 헤딩 매칭이 `/^#+ *Goal/`인 덕분에 `# Goal`과 `## Goal` 모두 잡히고, Goal 섹션이 없는 문서는 세 번째 필드가 빈 채로 출력된다.
+`gsub(/\t/," ")`는 장식이 아니라 출력 포맷을 지키는 장치다. 출력이 탭 구분 형식이므로 본문에 탭이 남으면 필드 경계가 깨진다. 헤딩 매칭이 `/^#+ *Goal/`인 덕분에 `# Goal`과 `## Goal` 모두 잡히고, Goal 섹션이 없는 문서는 마지막 필드가 빈 채로 출력된다.
+
+`finish`가 `**Status**:` 줄을 **첫 헤딩 앞**에 넣는 것도 이 상태 기계 때문이다. Goal 섹션 안에 넣으면 첫 문단으로 빨려 들어가 목록 출력이 오염된다.
 
 ## context-check: 컨텍스트 압력 감지
 
@@ -287,7 +311,16 @@ JSON 이스케이프는 `additionalContext`에만 적용한다. `banner`는 고�
 
 ## 검증 방법
 
-합성 transcript를 훅 payload처럼 흘려 넣으면 계산 경로를 직접 확인할 수 있다.
+저장소에 두 개의 테스트 스크립트가 있다. 둘 다 임시 `HOME`에서 돌기 때문에 실제 handoff를 건드리지 않는다.
+
+```sh
+sh tests/scan.sh            # dir/scan 계약: done/ 분리, 5개 컬럼, Status 파싱
+sh tests/context-check.sh   # 컨텍스트 밴드 판정과 호출 접두사 감지
+```
+
+`tests/scan.sh`가 지키는 핵심 불변식은 **봉인된 문서가 기본 `scan`에 잡히지 않는다**는 것이다. 이게 깨지면 `list`와 `resume`이 끝난 작업을 후보로 올린다.
+
+합성 transcript를 훅 payload처럼 흘려 넣으면 계산 경로를 직접 확인할 수도 있다.
 
 ```sh
 # Claude 포맷: (10 + 200000 + 500000) / 1000000 = 70% → 밴드 2

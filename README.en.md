@@ -46,7 +46,7 @@ This reads `.claude-plugin/marketplace.json` from the repo root and registers th
 /reload-plugins          # apply to the current session immediately
 ```
 
-Once installed, you'll have `/handoff:save`, `/handoff:list`, `/handoff:resume`, and `/handoff:delete`.
+Once installed, you'll have `/handoff:save`, `/handoff:list`, `/handoff:resume`, `/handoff:finish`, and `/handoff:delete`.
 
 ### 3) Verify
 
@@ -79,37 +79,68 @@ Add the following to your project's `.claude/settings.json` to have the marketpl
 
 ## Commands
 
-| Command | Purpose | Argument |
-|---------|---------|----------|
-| `/handoff:save [title]` | Save / update the current work as a handoff note | title (optional) |
-| `/handoff:list` | List all handoffs for this project | — |
+| Command | Purpose | Arguments |
+|---------|---------|-----------|
+| `/handoff:save [title] [--compact]` | Save / update the current work as a handoff note | title (optional), `--compact` (optional) |
+| `/handoff:list [--done]` | List handoffs for this project | `--done` (optional) |
 | `/handoff:resume [slug]` | Read a note and continue from its Next Steps | slug (optional) |
-| `/handoff:delete [slug]` | Delete a finished or abandoned note | slug (optional) |
+| `/handoff:finish [slug]` | Seal a note whose work is over | slug (optional) |
+| `/handoff:delete [slug]` | Delete a note permanently | slug (optional) |
 
-> **On Codex the prefix is `$`.** Codex invokes skills with `$`, so type `$handoff:save`, `$handoff:list`, `$handoff:resume`, `$handoff:delete` there. The rest of this document uses Claude Code's `/` notation.
+> **On Codex the prefix is `$`.** Codex invokes skills with `$`, so type `$handoff:save`, `$handoff:list`, `$handoff:resume`, `$handoff:finish`, `$handoff:delete` there. The rest of this document uses Claude Code's `/` notation.
 
-### `/handoff:save [title]`
+### The life of a note
 
-Call this when wrapping up a session or switching to a different task.
+```
+save ──▶ (working: resume/save repeatedly) ──▶ finish ──▶ archived in done/
+                                                            └──▶ delete (gone for good)
+```
 
-- **With a title** — converts it to a slug (lowercase, spaces → `-`) and saves/updates that file.
-- **Without a title** — scans existing handoffs: updates the file if it matches the current work, creates a new one (slug derived from the Goal) if it doesn't. Asks when ambiguous.
+`finish` **declares the work over**; `delete` **removes the file**. A finished note stays in `done/` as a record — it just drops out of `list` and `resume`.
+
+### `/handoff:save [title] [--compact]`
+
+Records progress when you're wrapping up a session or switching tasks.
+
+- **With a title**, it slugifies it (lowercase, spaces → `-`) and saves/updates that file.
+- **Without one**, it scans existing handoffs: same work → update that file; new work → derive a slug from the Goal and create one. If it's genuinely unclear, it asks.
+- **It never appends to a sealed note.** If work resumes on a finished task, that's new work and gets a new note.
 - After saving, prints the **full file path** and the resume command (`/handoff:resume <slug>`).
+- If the document passes **200 lines**, it offers to condense it — without blocking the save.
 
-### `/handoff:list`
+**`--compact`** — condenses accumulated history. The work continues, so it stays **conservative**: older What Worked / What Didn't Work entries collapse to one line each, while recent entries, Goal, Current Progress and Next Steps are left alone. Failed approaches are never dropped entirely — losing them means repeating them.
 
-Displays all handoffs for this project in a table — **Slug · Updated · Goal**. Read-only; changes nothing.
+Compacting is **not** sealing. The note stays live; ending it is `finish`.
+
+### `/handoff:list [--done]`
+
+Shows this project's active handoffs as a table — **Slug · Updated · Lines · Goal**. Strictly read-only.
+
+- **`--done`** — lists sealed notes instead (**Slug · Sealed · Status · Goal**).
 
 ### `/handoff:resume [slug]`
 
-- **With a slug** — reads that note directly.
+- **With a slug**, reads that note; if it doesn't exist, shows the list.
 - **Without a slug** — auto-selects if there's only one; prompts you to choose if there are multiple; suggests `/handoff:save` if there are none.
-- After reading the note, **briefly summarizes Goal · What Worked · Next Steps** to orient you, then **starts executing from Next Steps**. Approaches listed in **What Didn't Work** are not retried.
+- Reads the whole note, **summarizes Goal · What Worked · Next Steps** to confirm direction, then **executes from Next Steps**. Approaches listed under **What Didn't Work** are not retried.
+- Sealed notes are excluded from the candidates.
+- When the work reaches a stopping point, it names the next command in one line — `save` if there's more to do, `finish` if it's completely over, a new note if the Goal itself changed. It tells you; it doesn't block you with a question.
+
+### `/handoff:finish [slug]`
+
+Seals a note once its work is genuinely over.
+
+- Shows **Goal · Current Progress · remaining Next Steps**, then asks how it ended — **done** (goal reached) or **abandoned** (dropped, with a one-line reason).
+- Writes a line like `**Status**: done (2026-09-01)` at the top of the document and moves it to `done/`.
+- Once sealed it no longer appears in `list` or `resume`, and `save` won't append to it. The file itself stays.
+
+> **You decide when it's over.** Leftover Next Steps don't block sealing — you may have changed direction mid-task, which makes the old plan obsolete rather than unfinished. The skill points out what's left without judging, and it is **never invoked automatically.**
 
 ### `/handoff:delete [slug]`
 
-- Deletion is **irreversible** — shows the slug and Goal for confirmation first.
-- Without a slug, lets you select multiple notes to clean up in one go.
+- Deletion is **irreversible**, so it shows the slug, location (active / sealed) and Goal, and asks for confirmation first.
+- Without a slug it shows both active and sealed notes so you can clear several at once.
+- To end a task while keeping its record, use `/handoff:finish` instead.
 
 ---
 
@@ -168,6 +199,8 @@ Concrete next actions
 - **What Worked · What Didn't Work** → **accumulated** (past entries are never deleted)
 - **Goal** → left unchanged unless the task itself has changed
 
+When a note grows long, `/handoff:save --compact` collapses only the older entries. Failed approaches are kept either way.
+
 ---
 
 ## Where notes are stored
@@ -175,7 +208,8 @@ Concrete next actions
 Handoffs are saved to your home directory, not the repository. The path is host-neutral, so Claude Code and Codex resolve to the same location:
 
 ```
-~/.handoffs/<project-slug>/HANDOFF-<slug>.md
+~/.handoffs/<project-slug>/HANDOFF-<slug>.md        # active
+~/.handoffs/<project-slug>/done/HANDOFF-<slug>.md   # sealed by finish
 ```
 
 `<project-slug>` is the git root path with `/` replaced by `-` (falls back to the current directory if not in a git repo). Because it's based on the git root, handoffs are found correctly even when a session starts from a subdirectory — and because both hosts compute the same slug from the same repo path, saving from one and resuming from the other lands in the same folder.
@@ -200,11 +234,11 @@ Example — for a repo at `/Users/<you>/project/handoff`, the path resolves to:
 /handoff:list
 ```
 
-| Slug | Updated | Goal |
-|------|---------|------|
-| auction-state-machine | 2026-06-11 | Design the won→payment state transitions |
-| batch-php-migration | 2026-06-13 | Migrate the legacy PHP batch jobs to the new runtime |
-| settlement-interface | 2026-06-10 | Draft the settlement interface |
+| Slug | Updated | Lines | Goal |
+|------|---------|-------|------|
+| auction-state-machine | 2026-06-11 | 52 | Design the won→payment state transitions |
+| batch-php-migration | 2026-06-13 | 88 | Migrate the legacy PHP batch jobs to the new runtime |
+| settlement-interface | 2026-06-10 | 34 | Draft the settlement interface |
 
 ```shell
 /handoff:resume batch-php-migration   # pick this one up today
@@ -273,11 +307,13 @@ After the plugin code is updated, run `/plugin marketplace update gilbert9172` t
 
 ## How it works (internals)
 
-All four commands share a single helper script (`scripts/handoffs.sh`) for consistent path resolution and scanning.
+All commands share a single helper script (`scripts/handoffs.sh`) for consistent path resolution and scanning.
 
 ```sh
-sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" dir    # handoff directory for this project
-sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" scan   # per-note: slug · modified date · Goal paragraph
+sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" dir         # handoff directory for this project
+sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" dir done    # archive directory for sealed notes
+sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" scan        # per active note: slug · modified · lines · status · Goal paragraph
+sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" scan done   # sealed notes, same columns
 ```
 
 `${CLAUDE_PLUGIN_ROOT}` is injected automatically with the plugin's install path. `scan` reads the directory fresh every time — no index file means the list can never drift out of sync with the actual files.
@@ -290,7 +326,7 @@ This plugin started from the [handoff skill in ykdojo/claude-code-tips](https://
 
 | | Original | This plugin |
 |--|----------|------------|
-| Form | Single skill (save only) | 4 commands (save · list · resume · delete) — full lifecycle |
+| Form | Single skill (save only) | 5 commands (save · list · resume · finish · delete) — full lifecycle |
 | File | One fixed `HANDOFF.md` | Per-task `HANDOFF-<slug>.md` files |
 | Storage | Repo root | `~/.handoffs/<slug>/` (home dir, host-neutral) |
 | Scoping | cwd | git root slug |
@@ -301,5 +337,6 @@ This plugin started from the [handoff skill in ykdojo/claude-code-tips](https://
 *Why* those structural differences (per-task files · home storage · git-root scoping) matter is covered above in [How the parallelism works](#how-the-parallelism-works) · [Where notes are stored](#where-notes-are-stored). On top of that, three things the original lacked:
 
 - **resume** — reads the note, summarizes Goal · What Worked · Next Steps, then *stops before acting* for your confirmation (resuming loads context; it isn't sign-off on the plan).
-- **delete** — closes the lifecycle so notes don't pile up indefinitely.
+- **finish** — seals finished work and closes the lifecycle. This is what stops notes from growing without bound: a sealed note is never appended to, so the next task naturally becomes a new note. Whether the work is over is always the user's call — other commands mention `finish`, they never decide for you.
+- **delete** — removes files for good, once you want even the archived record gone.
 - **Index-less** — `scan` rebuilds the list from disk every time, eliminating the class of sync bugs where an index and the actual files diverge.

@@ -1,11 +1,17 @@
 #!/bin/sh
 # Shared path/scan logic for the handoff family of skills.
-# usage: handoffs.sh dir [legacy]           -> print the project's handoff directory
-#        handoffs.sh scan [legacy]          -> one line per handoff: slug<TAB>updated<TAB>first Goal paragraph
+# usage: handoffs.sh dir  [legacy|done]     -> print the project's handoff directory
+#        handoffs.sh scan [legacy|done]     -> one line per handoff:
+#                                              slug<TAB>updated<TAB>lines<TAB>status<TAB>first Goal paragraph
 #        handoffs.sh context-check          -> UserPromptSubmit hook: suggest handoff:save when context usage is high
-# The optional "legacy" argument targets the pre-1.5 Claude-only storage path
-# (~/.claude/projects/<slug>/handoffs/) instead of the current host-neutral one
-# (~/.handoffs/<slug>/). Only the migrate skill passes it.
+# The second argument selects which area to look at:
+#   (none)   the active handoffs   ~/.handoffs/<slug>/
+#   done     the sealed archive    ~/.handoffs/<slug>/done/   (finish moves files here)
+#   legacy   the pre-1.5 Claude-only path ~/.claude/projects/<slug>/handoffs/
+#            (only the migrate skill passes this)
+# Sealing is a physical fact, not a parsed flag: a file under done/ is closed, full
+# stop. resume and save therefore cannot pick one up by accident. The Status line
+# inside each file records why it closed (done/abandoned) for humans reading it.
 set -eu
 
 root="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
@@ -14,7 +20,10 @@ dir="$HOME/.handoffs/$slug"
 legacy_dir="$HOME/.claude/projects/$slug/handoffs"
 
 target="$dir"
-[ "${2:-}" = "legacy" ] && target="$legacy_dir"
+case "${2:-}" in
+  legacy) target="$legacy_dir" ;;
+  done)   target="$dir/done" ;;
+esac
 
 case "${1:-}" in
   dir)
@@ -26,12 +35,15 @@ case "${1:-}" in
       s=$(basename "$f" .md); s=${s#HANDOFF-}
       updated=$(stat -c '%y' "$f" 2>/dev/null | cut -d' ' -f1)
       [ -n "$updated" ] || updated=$(stat -f '%Sm' -t '%Y-%m-%d' "$f")
+      lines=$(wc -l < "$f" | tr -d ' ')
+      status=$(sed -n 's/^\*\*Status\*\*:[[:space:]]*\([A-Za-z]*\).*/\1/p' "$f" | head -n 1)
+      [ -n "$status" ] || status=active
       goal=$(awk '/^#+ *Goal/{g=1; next}
                   g && /^#/{exit}
                   g && !NF{if(got) exit; next}
                   g {sub(/^ +/,""); gsub(/\t/," "); out=out (got?" ":"") $0; got=1}
                   END{print out}' "$f")
-      printf '%s\t%s\t%s\n' "$s" "$updated" "$goal"
+      printf '%s\t%s\t%s\t%s\t%s\n' "$s" "$updated" "$lines" "$status" "$goal"
     done
     ;;
   context-check)
@@ -162,7 +174,7 @@ claude-sonnet-4-6 1000000'
       "$banner" "$(printf '%s' "$context" | sed 's/\\/\\\\/g; s/"/\\"/g')"
     ;;
   *)
-    echo "usage: handoffs.sh dir|scan|context-check" >&2
+    echo "usage: handoffs.sh dir|scan [legacy|done] , or context-check" >&2
     exit 2
     ;;
 esac

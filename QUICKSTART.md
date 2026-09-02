@@ -41,10 +41,10 @@
 
 🌅 **시작할 때** — `/handoff:list`로 어떤 작업이 어디까지 왔는지 한눈에 봅니다.
 
-| Slug | Updated | Goal |
-|------|---------|------|
-| auction-state-machine | 2026-06-11 | 낙찰→납부 상태 전이 설계 |
-| batch-php-migration | 2026-06-13 | 레거시 PHP 배치를 신규 런타임으로 이관 |
+| Slug | Updated | Lines | Goal |
+|------|---------|-------|------|
+| auction-state-machine | 2026-06-11 | 52 | 낙찰→납부 상태 전이 설계 |
+| batch-php-migration | 2026-06-13 | 88 | 레거시 PHP 배치를 신규 런타임으로 이관 |
 
 ```shell
 /handoff:resume batch-php-migration   # 오늘은 이거 이어서
@@ -52,9 +52,11 @@
 # 🌙 끝낼 때
 /handoff:save              # 제목 없이 저장하면 알아서 같은 노트 갱신/새 노트 생성
 
-# ✨ 완료되면
-/handoff:delete batch-php-migration   # 정리
+# ✨ 완전히 끝났으면
+/handoff:finish batch-php-migration   # 종료 처리 — done/ 으로 봉인
 ```
+
+`finish`한 노트는 목록에서 빠지고 `save`도 덧붙이지 않습니다. 기록은 `done/`에 남아 `/handoff:list --done`으로 볼 수 있고, 정말 지울 때만 `/handoff:delete`를 씁니다.
 
 ---
 
@@ -63,9 +65,11 @@
 | 커맨드 | 용도 | 예시 |
 |--------|------|------|
 | `/handoff:save [제목]` | 현재 작업 저장/갱신 | `/handoff:save api-docs` |
+| `/handoff:save --compact` | 길어진 노트 압축 (작업은 계속) | `/handoff:save api-docs --compact` |
 | `/handoff:list` | 목록 보기 | `/handoff:list` |
 | `/handoff:resume [슬러그]` | 작업 재개 | `/handoff:resume api-docs` |
-| `/handoff:delete [슬러그]` | 노트 삭제 | `/handoff:delete api-docs` |
+| `/handoff:finish [슬러그]` | 끝난 작업 종료 처리 | `/handoff:finish api-docs` |
+| `/handoff:delete [슬러그]` | 노트 완전 삭제 | `/handoff:delete api-docs` |
 
 > Codex에서는 skill 호출 접두사가 `$`입니다 — `$handoff:save`, `$handoff:list`처럼 입력하세요. 이 문서는 Claude Code 표기(`/`)로 씁니다.
 
@@ -81,7 +85,7 @@
 # Next Steps       ← 다음에 할 구체적 작업
 ```
 
-> 업데이트하면 **Progress·Next Steps는 최신으로 새로 쓰고**, **What Worked/Didn't Work는 누적**됩니다.
+> 업데이트하면 **Progress·Next Steps는 최신으로 새로 쓰고**, **What Worked/Didn't Work는 누적**됩니다. 노트가 길어지면 `--compact`로 오래된 기록만 묶습니다.
 
 ---
 
