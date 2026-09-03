@@ -130,11 +130,12 @@ Shows this project's active handoffs as a table — **Slug · Updated · Lines �
 
 Seals a note once its work is genuinely over.
 
-- Shows **Goal · Current Progress · remaining Next Steps**, then asks how it ended — **done** (goal reached) or **abandoned** (dropped, with a one-line reason).
+- Before showing anything, refreshes **Current Progress** from this session and auto-compacts past 200 lines, the same way `--compact` would. Next Steps is left untouched — once sealed, no one reads it as a plan anymore, only as a record of what was left when work stopped.
+- Shows **Goal · Current Progress · remaining Next Steps**, then asks how it ended — **done** (goal reached) or **abandoned** (dropped, with a one-line reason). If Next Steps still has items and you pick done, it confirms once before proceeding (not a refusal — just a check).
 - Writes a line like `**Status**: done (2026-09-01)` at the top of the document and moves it to `done/`.
 - Once sealed it no longer appears in `list` or `resume`, and `save` won't append to it. The file itself stays.
 
-> **You decide when it's over.** Leftover Next Steps don't block sealing — you may have changed direction mid-task, which makes the old plan obsolete rather than unfinished. The skill points out what's left without judging, and it is **never invoked automatically.**
+> **You decide when it's over.** Leftover Next Steps don't block sealing — you may have changed direction mid-task, which makes the old plan obsolete rather than unfinished. The skill points out what's left, confirms once if that contradicts your choice, and never decides for you. It is **never invoked automatically.**
 
 ### `/handoff:delete [slug]`
 

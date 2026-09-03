@@ -71,6 +71,8 @@ Create or update the document with:
 - **What Didn't Work**: Approaches that failed (so they're not repeated)
 - **Next Steps**: Clear action items for continuing
 
+`handoff:finish` also uses the merge rules below (for Current Progress, What Worked, What Didn't Work) when it brings a handoff's record up to date right before sealing — it just leaves Next Steps alone, since sealing removes the reader that field exists to guide.
+
 When updating an existing file, merge rather than blindly overwrite:
 
 - **Current Progress** and **Next Steps** reflect the latest state — rewrite them.
@@ -81,7 +83,7 @@ When updating an existing file, merge rather than blindly overwrite:
 
 Accumulated history is what makes a handoff useful and also what makes it grow without bound. Compacting trims it **without ending the handoff** — the work continues, so the document must stay useful to whoever picks it up next.
 
-Compact when the user passes `--compact`, or asks for it in their own words after you mention the document's size.
+Compact when the user passes `--compact`, or asks for it in their own words after you mention the document's size. `handoff:finish` also runs this step automatically (no flag needed) when a handoff crosses 200 lines, right before sealing — since a sealed file never gets edited again, that's the last chance to trim it.
 
 Be **conservative**. This document is still going to be read by an agent continuing the work:
 

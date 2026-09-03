@@ -1,6 +1,6 @@
 ---
 name: finish
-description: Seal a handoff whose work is over — either the goal was reached or the approach was dropped. The document moves into the archive so it stops appearing in list and resume, and save no longer appends to it. Use when the user says a task is completely finished or is being abandoned. Siblings — save writes handoffs, resume continues one, list shows them, delete removes them permanently.
+description: Seal a handoff whose work is over — either the goal was reached or the approach was dropped. Brings Current Progress up to date, then moves the document into the archive so it stops appearing in list and resume, and save no longer appends to it. Use when the user says a task is completely finished or is being abandoned. Siblings — save writes handoffs, resume continues one, list shows them, delete removes them permanently.
 disable-model-invocation: true
 argument-hint: "[title]"
 allowed-tools:
@@ -13,9 +13,9 @@ A handoff exists so a later session can pick the work back up. When there is not
 
 ## The user decides, never you
 
-**`finish` does not judge whether the work is done.** The user invoking this skill *is* the declaration that it's over. Your job is to show them what they're sealing and record their decision.
+**`finish` does not judge whether the work is done.** The user invoking this skill *is* the declaration that it's over. Your job is to bring the record up to date, show them what they're sealing, and record their decision — not to decide it for them.
 
-In particular, leftover **Next Steps do not block sealing**. Plans go stale — the user may have changed direction mid-task, which makes the old Next Steps a discarded plan rather than unfinished work. Point out what's left, then let the user decide.
+In particular, leftover **Next Steps do not block sealing**. Plans go stale — the user may have changed direction mid-task, which makes the old Next Steps a discarded plan rather than unfinished work. Point out what's left, then let the user decide. A leftover item can prompt one reconfirmation (see **Ask how it ended**), never a refusal.
 
 This skill is never invoked automatically. `save` and `resume` may *mention* it; only the user runs it.
 
@@ -36,7 +36,15 @@ sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" scan       # slug, updated, lines
 - **With a title argument** → the file is `$dir/HANDOFF-<title-slug>.md` (title lowercased, spaces → hyphens). If it doesn't exist, show the scan results so the user can pick the right slug.
 - **Without a title** → show the scan table and ask which to seal via AskUserQuestion. Ask even when only one handoff exists — sealing is a deliberate act, not a default.
 
-## 1. Show what's being sealed
+## 1. Bring the record up to date
+
+Before showing anything, make sure the document reflects what actually happened. Refresh **Current Progress**, and append to **What Worked** / **What Didn't Work** if this session found anything new — merge the same way `handoff:save` does (see that skill's **Write the document** section). If nothing has happened since the last save, there's nothing to refresh.
+
+Leave **Next Steps** untouched. It exists to guide whoever resumes next, and once this skill finishes there is no "next" — `resume` and `list` stop seeing this file. Whatever is listed there becomes the historical record of what was left, not a plan to keep in sync.
+
+If the file is now over 200 lines (`scan`'s line-count column), compact it the same way `handoff:save --compact` does (see that skill's **Compacting** section), and tell the user what was condensed and the line-count change, same as that skill would. Do this regardless of how the file ends up being sealed — it's document hygiene, not a judgment about the work.
+
+## 2. Show what's being sealed
 
 Read the file in full, then show the user, in their language:
 
@@ -46,7 +54,7 @@ Read the file in full, then show the user, in their language:
 
 Keep it short — this is context for one decision, not a report.
 
-## 2. Ask how it ended
+## 3. Ask how it ended
 
 Two outcomes, via AskUserQuestion:
 
@@ -57,7 +65,9 @@ For **abandoned**, ask for a one-line reason and record it. Without it, the arch
 
 If the user says neither really fits — the work is still live — stop and suggest `handoff:save` instead (see **Command notation**).
 
-## 3. Seal it
+**If Remaining Next Steps was non-empty and the user picks done**, confirm once before moving on: point out what's still listed and ask them to reconsider — done anyway, abandoned instead, or stop and keep working (suggest `handoff:save`). This is a check, not a veto — if they confirm done, proceed without asking again. The point isn't to catch every mismatch, just the case where the record in front of them contradicts the choice they just made.
+
+## 4. Seal it
 
 Two edits, in this order:
 
