@@ -296,7 +296,7 @@ name  description  license  compatibility  metadata  allowed-tools
 
 이 구분이 §7.1 결정의 근거다. **공유할 수 있는 건 표준 core이고, 나머지는 host별 파일로 내린다.** 필드별 전체 대조는 [SKILL.md Frontmatter 호환성 대조표](./skill-frontmatter-compat.md)에 있다 — 공통 / 유사 대응 / Claude 전용 / Codex 전용 4분류와 각 항목의 출처를 담았다.
 
-`list`와 `delete`의 현재 설정(`model: haiku`, `effort: low`)은 Claude에서 그대로 `SKILL.md`로 옮기면 된다. Codex에서는 skill-level override가 없으므로 두 skill이 부모 세션 모델로 실행되며, 이는 §8.1의 기본 원칙과 어긋나지 않는다.
+`list`와 `delete`의 현재 설정(`effort: low`)은 Claude에서 그대로 `SKILL.md`로 옮기면 된다. Codex에서는 `effort`에 대응하는 skill-level override가 없으므로 두 skill이 부모 세션 모델로 실행되며, 이는 §8.1의 기본 원칙과 어긋나지 않는다. (한때 `model: haiku`도 있었으나 되돌렸다 — §8.2 참고.)
 
 #### 이름 충돌 규칙
 
@@ -391,10 +391,10 @@ Codex에서는 handoff skill이 현재 부모 세션의 모델을 그대로 사�
 
 `SKILL.md`의 `model`과 `effort`는 Claude 전용 최적화 힌트이며 공통 계약에 포함하지 않는다.
 
-- **Claude**: 공식 지원 필드다. skill이 활성인 동안에만 세션 설정을 덮어쓰고 다음 사용자 prompt부터 원래 모델로 돌아간다. `list`와 `delete`의 `model: haiku`, `effort: low`를 그대로 유지한다.
+- **Claude**: 공식 지원 필드다. skill이 활성인 동안에만 세션 설정을 덮어쓰고 다음 사용자 prompt부터 원래 모델로 돌아간다. `list`와 `delete`는 `effort: low`만 유지한다.
 - **Codex**: skill-level override가 없다. Codex 설정이나 custom agent 정의의 `model`, `model_reasoning_effort`로 지정할 수는 있으나, §8.1 원칙에 따라 초기 범위에서는 지정하지 않고 부모 세션 모델을 그대로 쓴다.
 
-결과적으로 같은 skill이 Claude에서는 저비용으로, Codex에서는 부모 모델로 실행된다. **이 비대칭은 허용한다.** §13의 마지막 항목이 요구하는 건 핵심 기능이 특정 모델에 의존하지 않는 것이지, 두 host의 실행 비용이 같은 것이 아니다.
+**정정 (2026-09-03):** `list`와 `delete`에는 한때 `model: haiku`도 있었으나 되돌렸다. skill의 `model` override는 그 turn만 모델을 바꿀 뿐 대화 히스토리 전체를 새 모델에 다시 보내야 하는데, Claude 쪽에서 1M 컨텍스트 확장을 쓰는 세션(예: Sonnet 5)이 커지면 그 히스토리가 haiku의 표준 200K 창을 넘어 "Context limit reached"로 두 skill이 하드 실패하는 사례가 실측됐다(사용자 리포트, 2026-09-03). `list`/`delete`는 사용자가 드물게 직접 호출하고 출력도 몇 줄짜리 표 수준이라 haiku로 얻는 비용·속도 이득 자체가 애초에 미미했고, 그 이득이 정작 이 플러그인의 핵심 사용 시나리오인 "컨텍스트가 무거워진 세션"에서 하드 실패로 뒤집히는 손해가 훨씬 컸다. 그래서 `model` override는 버리고 `effort: low`만 남겼다 — 결정론적 스크립트 작업이라는 §8.1의 근거가 이 두 skill이 부모 모델로도 충분한 이유를 이미 설명한다. 결과적으로 두 skill은 이제 Claude와 Codex 모두 부모 세션 모델로 실행되며, 앞서 허용했던 host 간 비대칭도 함께 해소됐다.
 
 ## 9. 컨텍스트 압력 감지
 

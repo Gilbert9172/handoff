@@ -1,7 +1,6 @@
 ---
 name: delete
 description: Permanently delete a handoff document — an active one that is no longer wanted, or a sealed one being cleared out of the archive. Use when the user wants to clean up or remove handoff files for good. To end a task without losing its record, finish seals it instead.
-model: haiku
 effort: low
 disable-model-invocation: true
 argument-hint: "[title]"

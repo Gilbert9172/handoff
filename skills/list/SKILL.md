@@ -1,7 +1,6 @@
 ---
 name: list
 description: List this project's handoff documents (personal session-continuity notes) with their goals and last-updated dates. Pass --done to list sealed ones instead. Use when the user wants to see what handoffs exist, can't remember a handoff's name, or is deciding which task to pick back up.
-model: haiku
 effort: low
 disable-model-invocation: true
 argument-hint: "[--done]"
