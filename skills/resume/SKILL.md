@@ -27,11 +27,12 @@ sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" scan  # slug, updated, lines, sta
 ## Continue the work
 
 1. Read the chosen file in full.
-2. Restate the **Goal**, **What Worked** and **Next Steps** to the user in a couple of sentences, so they can correct course before you invest effort. Respond in the user's language.
+2. Restate the **Goal**, **What Worked** and **Next Steps** to the user in a couple of sentences, so they can correct course before you invest effort. If **Parked** has items, mention them in one line as things this handoff deliberately set aside — not as work to do. Respond in the user's language.
+   - **If Next Steps is empty**, don't propose work. Say that everything the Goal requires is already done, that `handoff:finish` (see **Command notation**) seals it, and that any Parked item can start a new handoff. Then stop and wait — the user may still want to add steps here.
 3. Ask whether to proceed with the **Next Steps**, then **stop and wait** for the user's answer
   - Don't execute in the same turn. Resuming loads context — it doesn't commit the user to the plan; they may tweak the steps or do something else.
   - Prefer AskUserQuestion when the choice is clear-cut (e.g. "Continue with the next steps" vs. "Do something else").
-4. Once the user confirms, execute the **Next Steps**. Respect **What Didn't Work** — the whole point of that section is that failed approaches aren't repeated.
+4. Once the user confirms, execute the **Next Steps**. Respect **What Didn't Work** — the whole point of that section is that failed approaches aren't repeated. Stay inside the Goal: if you notice something worth doing that the Goal doesn't require, note it for **Parked** at the next save instead of doing it now.
 
 ## When the work reaches a stopping point
 
@@ -46,7 +47,7 @@ Sessions end in one of three ways, and the user needs to know which command matc
 Two rules about this:
 
 - **Mention, don't ask.** Don't stop the user with a question about which one they want. State the options and let them choose; they may well want to keep working.
-- **Never seal anything yourself.** Running out of Next Steps is not proof the work is over — plans go stale, and the user may have taken the task somewhere the document doesn't reflect yet. Only the user runs `finish`.
+- **Never seal anything yourself.** An empty Next Steps is the signal to *suggest* `finish`, not to run it — the user may have taken the task somewhere the document doesn't reflect yet. Only the user runs `finish`.
 
 ## Command notation
 

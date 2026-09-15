@@ -78,14 +78,17 @@
 ## 5️⃣ 노트 구조 (저장 시 채워지는 섹션)
 
 ```markdown
-# Goal            ← 목표 (한두 문장)
+# Goal            ← 무엇이 되면 끝인가 (끝난 상태 한두 문장)
 # Current Progress ← 지금까지 한 일
 # What Worked      ← 잘된 접근
 # What Didn't Work ← 실패한 접근 + 이유 (반복 방지)
-# Next Steps       ← 다음에 할 구체적 작업
+# Next Steps       ← Goal에 꼭 필요한 일만
+# Parked           ← 하면 좋지만 이 Goal엔 필요 없는 일 (보류)
 ```
 
-> 업데이트하면 **Progress·Next Steps는 최신으로 새로 쓰고**, **What Worked/Didn't Work는 누적**됩니다. 노트가 길어지면 `--compact`로 오래된 기록만 묶습니다.
+> 업데이트하면 **Progress·Next Steps는 최신으로 새로 쓰고**, **What Worked/Didn't Work/Parked는 누적**됩니다. 노트가 길어지면 `--compact`로 오래된 기록만 묶습니다.
+>
+> **Next Steps가 비고 Parked만 남으면 끝 지점**입니다 — `save`와 `resume`이 그때 `finish`를 권합니다. Parked 항목은 새 노트로 시작하세요.
 
 ---
 

@@ -76,14 +76,17 @@ A sealed note drops out of the list and `save` no longer appends to it. The reco
 ## 5️⃣ Note structure (sections filled on save)
 
 ```markdown
-# Goal            ← what you're trying to accomplish (1–2 sentences)
+# Goal            ← what is true when the work is over (an end state, 1–2 sentences)
 # Current Progress ← what's been done so far
 # What Worked      ← approaches that proved effective
 # What Didn't Work ← failed approaches + reasons (prevents repetition)
-# Next Steps       ← concrete next actions
+# Next Steps       ← only what the Goal still requires
+# Parked           ← worth doing, but not required by this Goal
 ```
 
-> On update: **Progress · Next Steps are overwritten** with the latest state. **What Worked / Didn't Work accumulate** — past entries are never deleted.
+> On update: **Progress · Next Steps are overwritten** with the latest state. **What Worked / Didn't Work / Parked accumulate** — past entries are never deleted.
+>
+> **Next Steps empty and only Parked left is the end point** — `save` and `resume` suggest `finish` there. Start a new note for any Parked item.
 
 ---
 

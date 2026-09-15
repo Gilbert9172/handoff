@@ -65,19 +65,40 @@ Keeping the scope to one thread is what stops a single file from absorbing month
 
 Create or update the document with:
 
-- **Goal**: What we're trying to accomplish
+- **Goal**: The end state — what is true when this handoff is over
 - **Current Progress**: What's been done so far
 - **What Worked**: Approaches that succeeded
 - **What Didn't Work**: Approaches that failed (so they're not repeated)
-- **Next Steps**: Clear action items for continuing
+- **Next Steps**: Only what is still required to reach the Goal
+- **Parked**: Things worth doing that the Goal does not require
 
-`handoff:finish` also uses the merge rules below (for Current Progress, What Worked, What Didn't Work) when it brings a handoff's record up to date right before sealing — it just leaves Next Steps alone, since sealing removes the reader that field exists to guide.
+`handoff:finish` also uses the merge rules below (for Current Progress, What Worked, What Didn't Work) when it brings a handoff's record up to date right before sealing — it just leaves Next Steps and Parked alone, since sealing removes the reader those fields exist to guide.
+
+### Goal is a state, not an activity
+
+Write the Goal as **what is true when the work is over**, not what you are doing. "Login and refresh run on JWT and the session code is gone" — not "migrate auth to JWT". A state sentence is what makes the next judgment possible: for any candidate step, you can ask whether the Goal holds without it.
+
+The Goal may be vague at first — that's fine. If this session made it clearer what "done" looks like, sharpen the sentence when you save. Sharpening is not changing the task; replacing the Goal with a different one is (see **What counts as "the same work"**).
+
+### Next Steps vs Parked
+
+A handoff never ends on its own if every idea that comes up during the work lands in Next Steps. So Next Steps holds **only what the Goal requires**, and everything else goes to **Parked**.
+
+When you rewrite Next Steps, put each candidate through one question: *if this is never done, is the Goal still reached?*
+
+- No → it belongs in **Next Steps**.
+- Yes → it belongs in **Parked**. Note in a few words why it was set aside (a separate task, a nice-to-have, a follow-up handoff).
+
+Parked is the record of what was deliberately left out of this thread. It is not a backlog to drain — the user picks something up from it by starting a new handoff, not by promoting it into Next Steps. Only move a Parked item into Next Steps if it turns out the Goal actually can't be reached without it.
+
+**When Next Steps is empty and only Parked remains, the work this handoff describes is finished** — that's the signal for `handoff:finish` (see **After saving**). Don't invent steps to keep the list non-empty.
 
 When updating an existing file, merge rather than blindly overwrite:
 
 - **Current Progress** and **Next Steps** reflect the latest state — rewrite them.
+- **Parked** accumulates — append, and drop an item only if it moved into Next Steps or was done elsewhere.
 - **What Worked** and **What Didn't Work** accumulate — append new findings, and don't drop old ones unless you are compacting (below).
-- **Goal** rarely changes — leave it unless the task itself has shifted.
+- **Goal** rarely changes — sharpen it when the end state becomes clearer, but leave it unless the task itself has shifted.
 
 ## Compacting
 
@@ -90,7 +111,7 @@ Be **conservative**. This document is still going to be read by an agent continu
 - Condense **older** entries in What Worked / What Didn't Work into one line each, grouping ones that make the same point.
 - Keep **recent** entries as they are — they're the live context.
 - Never drop a failed approach entirely. Losing it means someone repeats it, which is the whole reason the section exists.
-- Leave Goal, Current Progress, and Next Steps alone. They already reflect the latest state.
+- Leave Goal, Current Progress, Next Steps, and Parked alone. They already reflect the latest state.
 
 Show the user what the compaction removed or merged, and how many lines the file went from and to.
 
@@ -108,6 +129,7 @@ Tell the user these things, so the next conversation needs no remembered paths. 
 2. The resume command, with the real slug filled in and this host's command prefix (see **Command notation**) — e.g. `/handoff:resume auth-jwt-migration` on Claude Code, `$handoff:resume auth-jwt-migration` on Codex. Never leave the literal `<slug>` placeholder in.
 3. A note that continuing is best done in a **fresh session**: handoff exists precisely so an agent with clean context can pick up the work — so if they want to keep going, they should start a new session and run the resume command there rather than continuing in this one. Write it in the user's language with the real slug already substituted, e.g. (for slug `auth-jwt-migration`, on Claude Code): "save 완료 후 이어서 진행하실 경우, 새로운 세션에서 `/handoff:resume auth-jwt-migration` 로 이어서 해주세요."
 4. That `handoff:finish <slug>` seals this handoff when the work is completely over. One line, always — the user decides when that is, so this is a signpost, not a question.
+   **If Next Steps is now empty**, say so explicitly instead of the generic line: everything the Goal requires is done, so this is the moment to run `handoff:finish <slug>`; if Parked has items, add that any of them can become a new handoff. Still a signpost — never seal it yourself.
 5. **Only if the file now exceeds 200 lines** (the `scan` output's third column), mention its size and offer to condense it. Say it as an offer they can answer right there — don't block the save on it, and don't compact without being asked.
 
 Never ask a question that stops the user from leaving. `save` usually runs when context is nearly full and they're about to end the session; the save itself is already complete by this point.

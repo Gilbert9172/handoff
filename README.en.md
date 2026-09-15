@@ -122,7 +122,8 @@ Shows this project's active handoffs as a table — **Slug · Updated · Lines �
 
 - **With a slug**, reads that note; if it doesn't exist, shows the list.
 - **Without a slug** — auto-selects if there's only one; prompts you to choose if there are multiple; suggests `/handoff:save` if there are none.
-- Reads the whole note, **summarizes Goal · What Worked · Next Steps** to confirm direction, then **executes from Next Steps**. Approaches listed under **What Didn't Work** are not retried.
+- Reads the whole note, **summarizes Goal · What Worked · Next Steps** to confirm direction, then **executes from Next Steps**. Approaches listed under **What Didn't Work** are not retried, and items under **Parked** are outside the Goal, so they aren't done either.
+- If Next Steps is empty it doesn't invent work — it says everything the Goal requires is done and that it's time for `finish`.
 - Sealed notes are excluded from the candidates.
 - When the work reaches a stopping point, it names the next command in one line — `save` if there's more to do, `finish` if it's completely over, a new note if the Goal itself changed. It tells you; it doesn't block you with a question.
 
@@ -131,7 +132,7 @@ Shows this project's active handoffs as a table — **Slug · Updated · Lines �
 Seals a note once its work is genuinely over.
 
 - Before showing anything, refreshes **Current Progress** from this session and auto-compacts past 200 lines, the same way `--compact` would. Next Steps is left untouched — once sealed, no one reads it as a plan anymore, only as a record of what was left when work stopped.
-- Shows **Goal · Current Progress · remaining Next Steps**, then asks how it ended — **done** (goal reached) or **abandoned** (dropped, with a one-line reason). If Next Steps still has items and you pick done, it confirms once before proceeding (not a refusal — just a check).
+- Shows **Goal · Current Progress · remaining Next Steps · Parked**, then asks how it ended. Parked items were set aside on purpose, so they don't count against sealing; after sealing, any of them can start a new note — **done** (goal reached) or **abandoned** (dropped, with a one-line reason). If Next Steps still has items and you pick done, it confirms once before proceeding (not a refusal — just a check).
 - Writes a line like `**Status**: done (2026-09-01)` at the top of the document and moves it to `done/`.
 - Once sealed it no longer appears in `list` or `resume`, and `save` won't append to it. The file itself stays.
 
@@ -175,11 +176,11 @@ Thresholds are configurable via environment variables:
 
 ## Handoff document structure
 
-Each note has five sections:
+Each note has six sections:
 
 ```markdown
 # Goal
-What you're trying to accomplish (one or two sentences)
+What is true when the work is over — an end state, not an activity (one or two sentences)
 
 # Current Progress
 What has been done so far
@@ -191,14 +192,23 @@ Approaches that proved effective
 Approaches that were tried and failed (with reasons — prevents repetition)
 
 # Next Steps
-Concrete next actions
+Only what the Goal still requires
+
+# Parked
+Worth doing, but not required by this Goal (with a word on why it was set aside)
 ```
+
+### How a note gets an end point
+
+If every idea that comes up lands in Next Steps, a note never ends. So `save` asks one question per item — **"if this is never done, is the Goal still reached?"** No → Next Steps; yes → Parked. That's why the Goal is written as an end state rather than an activity: it's what makes that judgment possible.
+
+**Next Steps empty and only Parked left** is the end point. `save` and `resume` recognize that state and suggest `finish` in one line, noting that any Parked item can start a new note. Sealing is still yours to do.
 
 ### Merge rules on update (`/handoff:save` applies these automatically)
 
 - **Current Progress · Next Steps** → **overwritten** with the latest state
-- **What Worked · What Didn't Work** → **accumulated** (past entries are never deleted)
-- **Goal** → left unchanged unless the task itself has changed
+- **What Worked · What Didn't Work · Parked** → **accumulated** (past entries are never deleted)
+- **Goal** → sharpened as the end state becomes clearer, otherwise left unchanged unless the task itself has changed
 
 When a note grows long, `/handoff:save --compact` collapses only the older entries. Failed approaches are kept either way.
 

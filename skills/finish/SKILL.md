@@ -40,7 +40,7 @@ sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" scan       # slug, updated, lines
 
 Before showing anything, make sure the document reflects what actually happened. Refresh **Current Progress**, and append to **What Worked** / **What Didn't Work** if this session found anything new — merge the same way `handoff:save` does (see that skill's **Write the document** section). If nothing has happened since the last save, there's nothing to refresh.
 
-Leave **Next Steps** untouched. It exists to guide whoever resumes next, and once this skill finishes there is no "next" — `resume` and `list` stop seeing this file. Whatever is listed there becomes the historical record of what was left, not a plan to keep in sync.
+Leave **Next Steps** and **Parked** untouched. They exist to guide whoever resumes next, and once this skill finishes there is no "next" — `resume` and `list` stop seeing this file. Whatever is listed there becomes the historical record: Next Steps of what was left undone, Parked of what was deliberately kept out of this thread.
 
 If the file is now over 200 lines (`scan`'s line-count column), compact it the same way `handoff:save --compact` does (see that skill's **Compacting** section), and tell the user what was condensed and the line-count change, same as that skill would. Do this regardless of how the file ends up being sealed — it's document hygiene, not a judgment about the work.
 
@@ -50,7 +50,8 @@ Read the file in full, then show the user, in their language:
 
 - **Goal** — what this handoff set out to do
 - **Current Progress** — where it actually got to
-- **Remaining Next Steps** — every item still listed, verbatim. If there are none, say so.
+- **Remaining Next Steps** — every item still listed, verbatim. If there are none, say so — an empty list means everything the Goal required is done, which is the normal way a handoff arrives here.
+- **Parked** — one line, if any: these were set aside on purpose, so they are not unfinished work and don't count against sealing. Any of them can become a new handoff.
 
 Keep it short — this is context for one decision, not a report.
 
@@ -107,6 +108,7 @@ Tell the user, in their language, with real values substituted — never the lit
 1. The **full, expanded** archive path of the sealed file.
 2. That it no longer appears in `handoff:list` or `handoff:resume`, and that `handoff:save` will start a **new** handoff rather than appending to this one.
 3. That the file still exists — `handoff:delete` removes it for good if they want it gone.
+4. **If Parked had items**, that each can be picked up as a new handoff with `handoff:save <title>` — one line, no question.
 
 ## If the move fails
 

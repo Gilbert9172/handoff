@@ -122,7 +122,8 @@ save ──▶ (작업 중, resume/save 반복) ──▶ finish ──▶ done/
 
 - **슬러그를 주면** 그 노트를 읽고, **없으면** 목록을 보여줍니다.
 - **슬러그가 없을 때** — 노트가 1개면 자동 선택, 여러 개면 선택지를 물어보고, 없으면 `/handoff:save`를 제안합니다.
-- 노트를 전부 읽은 뒤 **Goal · What Worked · Next Steps를 짧게 요약**해 방향을 확인하고, **Next Steps부터 실행**합니다. **What Didn't Work**에 적힌 실패 방법은 다시 시도하지 않습니다.
+- 노트를 전부 읽은 뒤 **Goal · What Worked · Next Steps를 짧게 요약**해 방향을 확인하고, **Next Steps부터 실행**합니다. **What Didn't Work**에 적힌 실패 방법은 다시 시도하지 않고, **Parked**에 적힌 일은 Goal 밖이므로 하지 않습니다.
+- Next Steps가 비어 있으면 일을 만들어내지 않고, Goal에 필요한 건 다 끝났으니 `finish`할 때라고 알려줍니다.
 - finish된 노트는 후보에서 빠집니다.
 - 작업이 일단락되면 **다음에 뭘 쓸지 한 줄로 안내**합니다 — 더 할 게 남았으면 `save`, 완전히 끝났으면 `finish`, 목표 자체가 바뀌었으면 새 노트. 묻고 막지는 않습니다.
 
@@ -131,7 +132,7 @@ save ──▶ (작업 중, resume/save 반복) ──▶ finish ──▶ done/
 작업이 완전히 끝났을 때 그 노트를 봉인합니다.
 
 - 보여주기 전에 **Current Progress**를 이번 세션 내용으로 먼저 갱신하고, 200줄을 넘으면 `--compact`와 같은 방식으로 자동 정리합니다. Next Steps는 손대지 않습니다 — 봉인되면 더 이상 누구도 참고할 계획이 아니라 "어디까지 계획했다가 멈췄나"를 보여주는 기록으로 남기 때문입니다.
-- **Goal · Current Progress · 남은 Next Steps**를 보여준 뒤, 어떻게 끝났는지 고릅니다 — **done**(목표 달성) 또는 **abandoned**(중단, 사유 한 줄). Next Steps가 남아 있는데 done을 고르면 정말 그런지 한 번 더 확인합니다(거부는 아니고, 확인 후 그대로 진행).
+- **Goal · Current Progress · 남은 Next Steps · Parked**를 보여준 뒤, 어떻게 끝났는지 고릅니다. Parked는 일부러 빼둔 일이라 봉인에 걸리지 않고, 봉인 후 새 노트로 시작할 수 있다고 안내합니다 — **done**(목표 달성) 또는 **abandoned**(중단, 사유 한 줄). Next Steps가 남아 있는데 done을 고르면 정말 그런지 한 번 더 확인합니다(거부는 아니고, 확인 후 그대로 진행).
 - 문서 맨 위에 `**Status**: done (2026-09-01)` 같은 줄을 남기고 `done/`으로 옮깁니다.
 - 봉인 후에는 list·resume에 뜨지 않고, save도 덧붙이지 않습니다. 파일은 그대로 남아 있습니다.
 
@@ -177,11 +178,11 @@ save ──▶ (작업 중, resume/save 반복) ──▶ finish ──▶ done/
 
 ## Handoff 문서 구조
 
-각 노트는 다음 다섯 섹션으로 구성됩니다.
+각 노트는 다음 여섯 섹션으로 구성됩니다.
 
 ```markdown
 # Goal
-무엇을 이루려는가 (한두 문장)
+무엇이 되면 끝인가 — 활동이 아니라 "끝난 상태" 한두 문장
 
 # Current Progress
 지금까지 한 일
@@ -193,14 +194,23 @@ save ──▶ (작업 중, resume/save 반복) ──▶ finish ──▶ done/
 시도했지만 실패한 접근 (반복 방지 — 이유까지)
 
 # Next Steps
-다음에 할 구체적 작업
+Goal에 도달하려면 꼭 해야 하는 일만
+
+# Parked
+하면 좋지만 이 Goal에는 필요 없는 일 (보류 사유 한마디)
 ```
+
+### 끝 지점이 생기는 방식
+
+Next Steps에 떠오르는 일을 전부 넣으면 노트는 영원히 안 끝납니다. 그래서 `save`는 항목마다 한 가지만 묻습니다 — **"이걸 안 해도 Goal은 달성되나?"** 아니면 Next Steps, 그렇다면 Parked. Goal을 "무엇을 한다"가 아니라 "무엇이 되면 끝"이라는 상태로 쓰는 이유가 이 판단을 가능하게 하기 위해서입니다.
+
+그러면 **Next Steps가 비고 Parked만 남은 상태**가 곧 끝 지점입니다. `save`와 `resume`은 그 상태를 보면 `finish`를 한 줄로 권하고, Parked 항목은 새 노트로 시작하면 된다고 알려줍니다. 봉인은 여전히 사용자가 합니다.
 
 ### 업데이트 시 병합 규칙 (`/handoff:save`가 자동 적용)
 
 - **Current Progress · Next Steps** → 최신 상태로 **새로 씀**
-- **What Worked · What Didn't Work** → 기존 내용에 **누적**(과거 기록을 지우지 않음)
-- **Goal** → 작업 자체가 바뀌지 않는 한 그대로 둠
+- **What Worked · What Didn't Work · Parked** → 기존 내용에 **누적**(과거 기록을 지우지 않음)
+- **Goal** → 끝난 상태가 더 분명해지면 다듬되, 작업 자체가 바뀌지 않는 한 그대로 둠
 
 노트가 길어지면 `/handoff:save --compact`로 오래된 기록만 묶어 줄일 수 있습니다. 이때도 실패한 접근은 남깁니다.
 
