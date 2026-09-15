@@ -1,6 +1,7 @@
 ---
 name: migrate
-description: One-time move of this project's handoff documents from the old Claude-only storage path (~/.claude/projects/<slug>/handoffs/) to the current host-neutral path (~/.handoffs/<slug>/). Use only when explicitly asked to migrate, move, or recover old handoffs after upgrading this plugin — never trigger this on its own. Temporary skill: it will be removed once the old path falls out of use.
+description: >-
+  One-time move of this project's handoff documents from the old Claude-only storage path (~/.claude/projects/<slug>/handoffs/) to the current host-neutral path (~/.handoffs/<slug>/). Use only when explicitly asked to migrate, move, or recover old handoffs after upgrading this plugin — never trigger this on its own. Temporary skill: it will be removed once the old path falls out of use.
 disable-model-invocation: true
 allowed-tools:
   - Bash(sh:*), Bash(echo:*), Bash(mkdir:*), Bash(mv:*)
@@ -14,14 +15,16 @@ This skill only moves files for the **current project's exact slug** (same git-r
 
 ## Find both locations
 
+
+(`${HANDOFF_PLUGIN_ROOT}` is this plugin's installation directory. Resolve `HANDOFF_PLUGIN_ROOT` to two directories above this skill’s base directory; a host-provided plugin root may be used if it points to this installation. Set this variable before running the examples. For questions, use the host’s available user-input tool or plain conversation, respecting any answer or authorization already given.)
+
 ```sh
-sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" dir           # current (new) directory
-sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" dir legacy    # old directory
-sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" scan          # current handoffs: slug, updated, lines, status, Goal
-sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" scan legacy   # old handoffs: same columns
+sh "${HANDOFF_PLUGIN_ROOT}/scripts/handoffs.sh" dir           # current (new) directory
+sh "${HANDOFF_PLUGIN_ROOT}/scripts/handoffs.sh" dir legacy    # old directory
+sh "${HANDOFF_PLUGIN_ROOT}/scripts/handoffs.sh" scan          # current handoffs: slug, updated, lines, status, Goal
+sh "${HANDOFF_PLUGIN_ROOT}/scripts/handoffs.sh" scan legacy   # old handoffs: same columns
 ```
 
-(`${CLAUDE_PLUGIN_ROOT}` is this plugin's installation directory. If the variable is unavailable, the plugin root is two directories above this skill's base directory.)
 
 If `scan legacy` prints nothing, there is nothing to migrate — say so in one line and stop. This is the expected steady state for anyone who has already migrated or never had handoffs under the old path; treat it as a normal outcome, not an error.
 
@@ -34,8 +37,8 @@ For every slug `scan legacy` lists, check whether the same slug also appears in 
 
 ## Confirm before touching anything
 
-1. If there are clean moves, list them (slug, old path, new path) and confirm once via AskUserQuestion before moving any of them — this still touches the user's files, even though nothing is destroyed.
-2. For each conflicting slug, show both versions' updated date and Goal line side by side and ask via AskUserQuestion how to resolve it, per slug:
+1. If there are clean moves, list them (slug, old path, new path) and confirm once using the host’s available question mechanism before moving any of them — this still touches the user's files, even though nothing is destroyed.
+2. For each conflicting slug, show both versions' updated date and Goal line side by side and ask using the host’s available question mechanism how to resolve it, per slug:
    - **Keep current, discard legacy copy** — leave `~/.handoffs/` untouched; delete nothing yet, just skip the legacy file (see reporting below).
    - **Replace current with legacy copy** — move the legacy file over the current one.
    - **Keep both** — move the legacy file to `$dir/HANDOFF-<slug>-legacy.md` instead of overwriting.

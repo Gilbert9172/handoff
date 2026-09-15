@@ -1,6 +1,6 @@
 # handoff
 
-A Claude Code plugin that keeps you from **losing your place as you switch between tasks**.
+A plugin for **handing work between Claude Code and Codex agents and preserving context across long-running tasks**.
 It captures "what you were trying to do, how far you got, and what to do next" as a per-task note — so whichever task you switch back to, you pick up right where you left off.
 
 > This plugin is installed via the [Gilbert9172/handoff](https://github.com/Gilbert9172/handoff) marketplace. Follow the steps below.
@@ -110,6 +110,8 @@ Records progress when you're wrapping up a session or switching tasks.
 
 **`--compact`** — condenses accumulated history. The work continues, so it stays **conservative**: older What Worked / What Didn't Work entries collapse to one line each, while recent entries, Goal, Current Progress and Next Steps are left alone. Failed approaches are never dropped entirely — losing them means repeating them.
 
+A related follow-up note records its **predecessor’s exact path, inherited decisions or constraints, and new scope** in Current Progress. Sealed predecessors remain unchanged.
+
 Compacting is **not** sealing. The note stays live; ending it is `finish`.
 
 ### `/handoff:list [--done]`
@@ -122,8 +124,8 @@ Shows this project's active handoffs as a table — **Slug · Updated · Lines �
 
 - **With a slug**, reads that note; if it doesn't exist, shows the list.
 - **Without a slug** — auto-selects if there's only one; prompts you to choose if there are multiple; suggests `/handoff:save` if there are none.
-- Reads the whole note, **summarizes Goal · What Worked · Next Steps** to confirm direction, then **executes from Next Steps**. Approaches listed under **What Didn't Work** are not retried, and items under **Parked** are outside the Goal, so they aren't done either.
-- If Next Steps is empty it doesn't invent work — it says everything the Goal requires is done and that it's time for `finish`.
+- Reads the whole note, checks relevant predecessor references and the actual working state, and **summarizes Goal · What Worked · Next Steps**. Proceeds when execution is already authorized; otherwise asks before executing. Approaches listed under **What Didn't Work** are not repeated under the same conditions, and items under **Parked** are outside the Goal, so they aren't done either.
+- An empty Next Steps list does not prove completion. It suggests `finish` only when recorded results support the Goal’s completion criteria; otherwise it reports unknowns or waiting conditions.
 - Sealed notes are excluded from the candidates.
 - When the work reaches a stopping point, it names the next command in one line — `save` if there's more to do, `finish` if it's completely over, a new note if the Goal itself changed. It tells you; it doesn't block you with a question.
 
@@ -131,8 +133,8 @@ Shows this project's active handoffs as a table — **Slug · Updated · Lines �
 
 Seals a note once its work is genuinely over.
 
-- Before showing anything, refreshes **Current Progress** from this session and auto-compacts past 200 lines, the same way `--compact` would. Next Steps is left untouched — once sealed, no one reads it as a plan anymore, only as a record of what was left when work stopped.
-- Shows **Goal · Current Progress · remaining Next Steps · Parked**, then asks how it ended. Parked items were set aside on purpose, so they don't count against sealing; after sealing, any of them can start a new note — **done** (goal reached) or **abandoned** (dropped, with a one-line reason). If Next Steps still has items and you pick done, it confirms once before proceeding (not a refusal — just a check).
+- Before showing anything, refreshes **Current Progress** from this session and auto-compacts past 200 lines, the same way `--compact` would. Each Next Steps item is annotated as completed, unfinished, or dropped based on actual results; unknown outcomes stay explicit.
+- Shows **Goal · Current Progress · remaining Next Steps · Parked**, then asks how it ended. Parked items were set aside on purpose, so they don't count against sealing; after sealing, any of them can start a new note — **done** (goal reached) or **abandoned** (dropped, with a one-line reason). If unfinished or unknown Next Steps remain and you pick done, it confirms once before proceeding (not a refusal — just a check).
 - Writes a line like `**Status**: done (2026-09-01)` at the top of the document and moves it to `done/`.
 - Once sealed it no longer appears in `list` or `resume`, and `save` won't append to it. The file itself stays.
 
@@ -176,7 +178,7 @@ Thresholds are configurable via environment variables:
 
 ## Handoff document structure
 
-Each note has six sections:
+Each note has six sections. Where relevant, preserve user constraints, actual working locations and files, decisions and reasons, verification evidence versus unverified work, blockers and resume conditions. For code, include the branch/worktree and uncommitted changes needed to locate the work:
 
 ```markdown
 # Goal
@@ -202,12 +204,12 @@ Worth doing, but not required by this Goal (with a word on why it was set aside)
 
 If every idea that comes up lands in Next Steps, a note never ends. So `save` asks one question per item — **"if this is never done, is the Goal still reached?"** No → Next Steps; yes → Parked. That's why the Goal is written as an end state rather than an activity: it's what makes that judgment possible.
 
-**Next Steps empty and only Parked left** is the end point. `save` and `resume` recognize that state and suggest `finish` in one line, noting that any Parked item can start a new note. Sealing is still yours to do.
+**Recorded results supporting the Goal’s completion criteria, with no required work remaining**, are the basis for suggesting `finish`. An empty list alone is not evidence of completion. Any Parked item can start a new note. Sealing is still yours to do.
 
 ### Merge rules on update (`/handoff:save` applies these automatically)
 
 - **Current Progress · Next Steps** → **overwritten** with the latest state
-- **What Worked · What Didn't Work · Parked** → **accumulated** (past entries are never deleted)
+- **What Worked · What Didn't Work · Parked** → distinct findings **accumulate**; repeated facts merge without losing evidence or conditions. Superseded conclusions retain the reason and a reference to their replacement
 - **Goal** → sharpened as the end state becomes clearer, otherwise left unchanged unless the task itself has changed
 
 When a note grows long, `/handoff:save --compact` collapses only the older entries. Failed approaches are kept either way.
@@ -216,7 +218,7 @@ When a note grows long, `/handoff:save --compact` collapses only the older entri
 
 ## Where notes are stored
 
-Handoffs are saved to your home directory, not the repository. The path is host-neutral, so Claude Code and Codex resolve to the same location:
+Handoffs are saved to your home directory, not the repository. Automatic sharing requires the same home directory and absolute project path on a local machine; other devices or checkouts are not automatically synchronized. The path is host-neutral, so Claude Code and Codex resolve to the same location:
 
 ```
 ~/.handoffs/<project-slug>/HANDOFF-<slug>.md        # active
@@ -321,13 +323,13 @@ After the plugin code is updated, run `/plugin marketplace update gilbert9172` t
 All commands share a single helper script (`scripts/handoffs.sh`) for consistent path resolution and scanning.
 
 ```sh
-sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" dir         # handoff directory for this project
-sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" dir done    # archive directory for sealed notes
-sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" scan        # per active note: slug · modified · lines · status · Goal paragraph
-sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" scan done   # sealed notes, same columns
+sh "${HANDOFF_PLUGIN_ROOT}/scripts/handoffs.sh" dir         # handoff directory for this project
+sh "${HANDOFF_PLUGIN_ROOT}/scripts/handoffs.sh" dir done    # archive directory for sealed notes
+sh "${HANDOFF_PLUGIN_ROOT}/scripts/handoffs.sh" scan        # per active note: slug · modified · lines · status · Goal paragraph
+sh "${HANDOFF_PLUGIN_ROOT}/scripts/handoffs.sh" scan done   # sealed notes, same columns
 ```
 
-`${CLAUDE_PLUGIN_ROOT}` is injected automatically with the plugin's install path. `scan` reads the directory fresh every time — no index file means the list can never drift out of sync with the actual files.
+Before running these examples, set `HANDOFF_PLUGIN_ROOT` to the plugin installation path, two directories above the skill directory. Hook configuration uses the host-provided root variable. `scan` reads the directory fresh every time — no index file means the list can never drift out of sync with the actual files.
 
 ---
 

@@ -44,6 +44,31 @@ assert_contains 'explicit Claude limit overrides model detection' "$output" '200
 output=$(run_hook "$fixtures/codex.jsonl" codex)
 assert_contains 'Codex transcript limit remains authoritative' "$output" '40% 사용 중 (40000/100000 토큰)'
 
+# Equivalent JSONL with spaces or tabs around separators must produce the same
+# usage and host notation. In particular, Codex cache tokens stay included once.
+for spacing in space tab; do
+  case "$spacing" in
+    space) padding=' ' ;;
+    tab) padding=$(printf '\t') ;;
+  esac
+  for host in codex claude-haiku; do
+    spaced="$test_tmp/$host-$spacing.jsonl"
+    sed "s/\":/\"$padding:$padding/g; s/,/,$padding/g" "$fixtures/$host.jsonl" > "$spaced"
+    output=$(run_hook "$spaced" "$host-$spacing")
+    case "$host" in
+      codex) expected='40% 사용 중 (40000/100000 토큰)'; prefix='$handoff:save' ;;
+      claude-haiku) expected='40% 사용 중 (80000/200000 토큰)'; prefix='/handoff:save' ;;
+    esac
+    assert_contains "$host accepts $spacing in JSON separators" "$output" "$expected"
+    assert_contains "$host preserves host notation with $spacing" "$output" "$prefix"
+    repeated=$(run_hook "$spaced" "$host-$spacing")
+    if [ -n "$repeated" ]; then
+      printf 'not ok - duplicate reminder for %s\n' "$host-$spacing" >&2
+      exit 1
+    fi
+  done
+done
+
 output=$(run_hook "$fixtures/claude-haiku.jsonl" prefix-default)
 assert_contains 'Claude transcript defaults to / notation' "$output" '/handoff:save'
 

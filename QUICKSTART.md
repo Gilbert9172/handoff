@@ -1,6 +1,6 @@
 # handoff — 빠른 시작 (5분)
 
-여러 작업을 오가도 **어디까지 했는지 놓치지 않게** 해주는 플러그인입니다. 전체 설명은 [README.md](./README.md) 참고.
+Claude Code와 Codex 에이전트 사이에서 **장기 작업의 맥락을 이어주는** 작업 인계 플러그인입니다. 전체 설명은 [README.md](./README.md) 참고.
 
 ---
 
@@ -86,9 +86,9 @@
 # Parked           ← 하면 좋지만 이 Goal엔 필요 없는 일 (보류)
 ```
 
-> 업데이트하면 **Progress·Next Steps는 최신으로 새로 쓰고**, **What Worked/Didn't Work/Parked는 누적**됩니다. 노트가 길어지면 `--compact`로 오래된 기록만 묶습니다.
+> 업데이트하면 **Progress·Next Steps는 최신으로 새로 쓰고**, **What Worked/Didn't Work/Parked의 새로운 사실은 누적하고 중복은 병합**합니다. 바뀐 결론은 대체 관계와 이유를 남깁니다. 노트가 길어지면 `--compact`로 오래된 기록만 묶습니다.
 >
-> **Next Steps가 비고 Parked만 남으면 끝 지점**입니다 — `save`와 `resume`이 그때 `finish`를 권합니다. Parked 항목은 새 노트로 시작하세요.
+> **기록된 결과로 Goal 달성을 확인하고 필요한 작업이 남지 않았을 때가 끝 지점**입니다 — `save`와 `resume`이 그때 `finish`를 권합니다. 빈 목록만으로 완료를 판단하지 않습니다. 관련 후속 작업은 새 노트에 이전 문서 경로와 이어받을 결정을 남기세요.
 
 ---
 
@@ -124,6 +124,7 @@ A. `/reload-plugins` → 그래도 없으면 `/plugin list`로 설치 여부, `/
 ## 💡 팁
 
 - **Next Steps는 구체적으로.** "테스트 더 하기"보다 "`tests/auth.test.ts`의 POST 케이스 작성"처럼 — 미래의 나(또는 동료)가 바로 시작할 수 있게.
+- **인계 정보는 구체적으로.** 사용자 제약, 작업 위치, 검증 여부, 막힌 이유와 재개 조건을 남기세요.
 - **실패는 이유까지.** What Didn't Work가 다음 세션의 삽질을 막아줍니다.
 - **병렬 작업은 노트를 나눠서.** `/handoff:save auction-state-machine`, `/handoff:save batch-php-migration`처럼 작업별로.
 

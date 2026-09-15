@@ -1,6 +1,6 @@
 # handoffs.sh 동작 원리
 
-`scripts/handoffs.sh`는 handoff 플러그인의 유일한 실행 코드다. 네 개 skill(`save`, `list`, `resume`, `delete`)과 `UserPromptSubmit` 훅이 모두 이 스크립트 하나를 호출하므로, 저장 경로를 정하는 방식과 컨텍스트 사용량을 계산하는 방식이 호출 지점마다 갈라지지 않는다. 이 문서는 그 세 서브커맨드가 각각 무엇을 어떻게 계산하는지, 특히 컨텍스트 사용량(`used`)을 Claude와 Codex 두 포맷에서 어떻게 구하는지 설명한다.
+`scripts/handoffs.sh`는 handoff 동작의 공통 실행 코드다. 여섯 skill(`save`, `list`, `resume`, `finish`, `delete`, `migrate`)과 `UserPromptSubmit` 훅이 모두 이 스크립트 하나를 호출하므로, 저장 경로를 정하는 방식과 컨텍스트 사용량을 계산하는 방식이 호출 지점마다 갈라지지 않는다. 이 문서는 그 세 서브커맨드가 각각 무엇을 어떻게 계산하는지, 특히 컨텍스트 사용량(`used`)을 Claude와 Codex 두 포맷에서 어떻게 구하는지 설명한다.
 
 읽고 나면 다음을 알 수 있다.
 
@@ -10,6 +10,8 @@
 - 훅이 조용히 종료(exit 0)하는 지점과 그 이유
 
 전제 지식은 POSIX sh, `awk`, `sed` 수준이면 충분하다. 설계 배경은 `docs/provider-neutral-handoff-design.md`에 있고, 이 문서는 그 설계가 코드로 어떻게 내려앉았는지를 다룬다.
+
+JSONL의 한 줄 한 이벤트 구조에서 키·콜론 사이의 공백과 탭을 허용한다. 임의 JSON 스키마 변경을 지원하는 범용 파서는 아니다.
 
 ## 실행 계약
 
@@ -173,17 +175,19 @@ Claude transcript의 `usage` 객체는 이렇게 생겼다.
 `input_tokens`가 2라는 점이 중요하다. Claude는 캐시된 토큰을 `input_tokens`에서 **제외**하고 별도 필드에 기록한다. 실제 컨텍스트에 올라간 양은 세 값을 더해야 나온다.
 
 ```awk
+function token_count(key, value) {
+  if (!match($0, "\"" key "\"[[:space:]]*:[[:space:]]*[0-9]+")) return 0
+  value=substr($0, RSTART, RLENGTH)
+  sub(/^[^:]*:[[:space:]]*/, "", value)
+  return value+0
+}
 /"input_tokens"/ {
-  i=r=c=0
-  if (match($0, /"input_tokens":[0-9]+/))                i=substr($0, RSTART+15, RLENGTH-15)
-  if (match($0, /"cache_read_input_tokens":[0-9]+/))     r=substr($0, RSTART+26, RLENGTH-26)
-  if (match($0, /"cache_creation_input_tokens":[0-9]+/)) c=substr($0, RSTART+30, RLENGTH-30)
-  last=i+r+c
+  last=token_count("input_tokens") + token_count("cache_read_input_tokens") + token_count("cache_creation_input_tokens")
 }
 END { print last+0 }
 ```
 
-`match`가 잡은 위치에서 키 이름 길이만큼 건너뛰어 숫자만 잘라낸다. 오프셋 15/26/30은 각각 `"input_tokens":`, `"cache_read_input_tokens":`, `"cache_creation_input_tokens":`의 문자 수(따옴표 2개와 콜론 포함)다.
+`match`로 키와 콜론 주변 공백을 포함한 숫자 필드를 찾고, 키·콜론·공백을 제거해 값을 읽는다. 고정 문자 오프셋에 의존하지 않아 JSON 구분자 주변의 공백과 탭을 허용한다.
 
 여기서 `"input_tokens":` 패턴이 `"cache_read_input_tokens":`를 잘못 잡지 않는 이유는 패턴 맨 앞의 따옴표다. 캐시 필드에서 `input_tokens` 앞에 오는 문자는 `_`이므로 매칭되지 않는다.
 
@@ -201,11 +205,11 @@ used=$(printf '%s\n' "$tail_chunk" | awk "$usage_awk")
 Codex rollout은 `token_count` 이벤트에 사용량을 담는다.
 
 ```sh
-last_line=$(printf '%s\n' "$codex_chunk" | grep '"type":"token_count"' | tail -n 1)
-inner=$(printf '%s' "$last_line" | sed -n 's/.*"last_token_usage":{\([^}]*\)}.*/\1/p')
-used=$(printf '%s' "$inner" | sed -n 's/.*"input_tokens":\([0-9]*\).*/\1/p')
-codex_limit=$(printf '%s' "$last_line" | sed -n 's/.*"model_context_window":\([0-9]*\).*/\1/p')
-[ -n "$codex_limit" ] && limit="$codex_limit"
+last_line=$(printf '%s\n' "$codex_chunk" | grep '"type"[[:space:]]*:[[:space:]]*"token_count"' | tail -n 1)
+inner=$(printf '%s' "$last_line" | sed -n 's/.*"last_token_usage"[[:space:]]*:[[:space:]]*{\([^}]*\)}.*/\1/p')
+used=$(printf '%s' "$inner" | sed -n 's/.*"input_tokens"[[:space:]]*:[[:space:]]*\([0-9][0-9]*\).*/\1/p')
+codex_limit=$(printf '%s' "$last_line" | sed -n 's/.*"model_context_window"[[:space:]]*:[[:space:]]*\([0-9][0-9]*\).*/\1/p')
+limit="${codex_limit:-${HANDOFF_CONTEXT_LIMIT:-200000}}"
 ```
 
 두 단계로 나눈 이유가 이 코드의 핵심이다. 같은 줄에 `total_token_usage`(세션 누적)와 `last_token_usage`(현재 턴)가 함께 들어 있어서, `input_tokens`를 줄 전체에서 찾으면 누적값을 집을 위험이 있다. 그래서 먼저 `last_token_usage`의 중괄호 안쪽만 `inner`로 잘라내고, 그 안에서만 `input_tokens`를 읽는다. 설계 문서 §12 단계 4의 실측 기록에 따르면 실제 rollout에서 두 값은 20017과 59147로 크게 달랐다.

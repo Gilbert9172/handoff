@@ -10,12 +10,14 @@ allowed-tools:
 
 Run the shared scan script bundled with this plugin:
 
+(`${HANDOFF_PLUGIN_ROOT}` is this plugin's installation directory. Resolve `HANDOFF_PLUGIN_ROOT` to two directories above this skill’s base directory; a host-provided plugin root may be used if it points to this installation. Set this variable before running the examples. For questions, use the host’s available user-input tool or plain conversation, respecting any answer or authorization already given.)
+
 ```sh
-sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" scan        # active handoffs
-sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" scan done   # sealed archive (finish moves files here)
+sh "${HANDOFF_PLUGIN_ROOT}/scripts/handoffs.sh" scan        # active handoffs
+sh "${HANDOFF_PLUGIN_ROOT}/scripts/handoffs.sh" scan done   # sealed archive (finish moves files here)
 ```
 
-It prints one line per handoff, tab-separated: **slug, last-modified date, line count, status, and the first paragraph of its Goal section**. The script scopes to the current project — it derives the directory from the git root (fallback: cwd). (`${CLAUDE_PLUGIN_ROOT}` is this plugin's installation directory. If the variable is unavailable, the plugin root is two directories above this skill's base directory.)
+It prints one line per handoff, tab-separated: **slug, last-modified date, line count, status, and the first paragraph of its Goal section**. The script scopes to the current project — it derives the directory from the git root (fallback: cwd).
 
 - **Default** → list active handoffs. Their status is always `active`, so leave that column out: render **Slug | Updated | Lines | Goal**.
 - **With `--done`** → list the sealed archive instead, and keep the status column, since `done` and `abandoned` are what distinguish those entries: render **Slug | Sealed | Status | Goal**.

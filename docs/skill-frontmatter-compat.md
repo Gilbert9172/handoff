@@ -1,10 +1,12 @@
 # SKILL.md Frontmatter 호환성 대조표
 
-> 상태: Reference
+> 상태: Historical reference (2026-08-27 관찰 기준)
 > 작성일: 2026-08-27
 > 관련: [provider-neutral-handoff-design.md](./provider-neutral-handoff-design.md) §7.1
 
 `handoff`가 단일 `SKILL.md`를 Claude Code와 Codex가 공유하는 구조([설계 문서 §7.1](./provider-neutral-handoff-design.md))를 택했으므로, 어떤 frontmatter 필드를 공통 본문에 둘 수 있고 어떤 것을 host별 파일로 내려야 하는지 판단할 기준이 필요하다. 이 문서가 그 기준이다. 필드를 새로 쓰려 할 때마다 재조사하지 않도록 근거와 출처를 함께 남긴다.
+
+현재 구현은 `skills/*/SKILL.md`와 각 `agents/openai.yaml`을 기준으로 한다. 특히 아래 `allow_implicit_invocation: false` 적용 설명은 이후 번복되었으며 현재 파일에는 그 정책이 없다. 과거 버전 관찰을 최신 플랫폼 지원 보장으로 사용하지 않는다.
 
 ## 판단의 기준선
 

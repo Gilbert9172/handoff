@@ -97,10 +97,10 @@ case "${1:-}" in
     prefix="${HANDOFF_CMD_PREFIX:-$default_prefix}"
 
     if [ -n "$codex_chunk" ]; then
-      last_line=$(printf '%s\n' "$codex_chunk" | grep '"type":"token_count"' | tail -n 1)
-      inner=$(printf '%s' "$last_line" | sed -n 's/.*"last_token_usage":{\([^}]*\)}.*/\1/p')
-      used=$(printf '%s' "$inner" | sed -n 's/.*"input_tokens":\([0-9]*\).*/\1/p')
-      codex_limit=$(printf '%s' "$last_line" | sed -n 's/.*"model_context_window":\([0-9]*\).*/\1/p')
+      last_line=$(printf '%s\n' "$codex_chunk" | grep '"type"[[:space:]]*:[[:space:]]*"token_count"' | tail -n 1)
+      inner=$(printf '%s' "$last_line" | sed -n 's/.*"last_token_usage"[[:space:]]*:[[:space:]]*{\([^}]*\)}.*/\1/p')
+      used=$(printf '%s' "$inner" | sed -n 's/.*"input_tokens"[[:space:]]*:[[:space:]]*\([0-9][0-9]*\).*/\1/p')
+      codex_limit=$(printf '%s' "$last_line" | sed -n 's/.*"model_context_window"[[:space:]]*:[[:space:]]*\([0-9][0-9]*\).*/\1/p')
       limit="${codex_limit:-${HANDOFF_CONTEXT_LIMIT:-200000}}"
     else
       model_awk='
@@ -124,12 +124,14 @@ case "${1:-}" in
       limit="${HANDOFF_CONTEXT_LIMIT:-$detected_limit}"
 
       usage_awk='
+        function token_count(key, value) {
+          if (!match($0, "\"" key "\"[[:space:]]*:[[:space:]]*[0-9]+")) return 0
+          value=substr($0, RSTART, RLENGTH)
+          sub(/^[^:]*:[[:space:]]*/, "", value)
+          return value+0
+        }
         /"input_tokens"/ {
-          i=r=c=0
-          if (match($0, /"input_tokens":[0-9]+/))                i=substr($0, RSTART+15, RLENGTH-15)
-          if (match($0, /"cache_read_input_tokens":[0-9]+/))     r=substr($0, RSTART+26, RLENGTH-26)
-          if (match($0, /"cache_creation_input_tokens":[0-9]+/)) c=substr($0, RSTART+30, RLENGTH-30)
-          last=i+r+c
+          last=token_count("input_tokens") + token_count("cache_read_input_tokens") + token_count("cache_creation_input_tokens")
         }
         END { print last+0 }'
       used=$(printf '%s\n' "$tail_chunk" | awk "$usage_awk")

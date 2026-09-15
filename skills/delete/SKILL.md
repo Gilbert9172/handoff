@@ -10,21 +10,23 @@ allowed-tools:
 
 Run the shared script bundled with this plugin to see what exists:
 
+
+(`${HANDOFF_PLUGIN_ROOT}` is this plugin's installation directory. Resolve `HANDOFF_PLUGIN_ROOT` to two directories above this skill’s base directory; a host-provided plugin root may be used if it points to this installation. Set this variable before running the examples. For questions, use the host’s available user-input tool or plain conversation, respecting any answer or authorization already given.)
+
 ```sh
-sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" dir         # the handoff directory
-sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" dir done     # the sealed archive
-sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" scan         # active: slug, updated, lines, status, first Goal paragraph
-sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" scan done    # sealed archive, same columns
+sh "${HANDOFF_PLUGIN_ROOT}/scripts/handoffs.sh" dir         # the handoff directory
+sh "${HANDOFF_PLUGIN_ROOT}/scripts/handoffs.sh" dir done     # the sealed archive
+sh "${HANDOFF_PLUGIN_ROOT}/scripts/handoffs.sh" scan         # active: slug, updated, lines, status, first Goal paragraph
+sh "${HANDOFF_PLUGIN_ROOT}/scripts/handoffs.sh" scan done    # sealed archive, same columns
 ```
 
-(`${CLAUDE_PLUGIN_ROOT}` is this plugin's installation directory. If the variable is unavailable, the plugin root is two directories above this skill's base directory.)
 
 Deletion is permanent, so scan **both** areas and be explicit about which one a file is in — removing an active handoff throws away work someone may still be counting on, while clearing the archive only discards a record of finished work.
 
 - **With a title argument** → look for `$dir/HANDOFF-<title-slug>.md` first, then `$dir/done/HANDOFF-<title-slug>.md` (title lowercased, spaces → hyphens). If neither exists, show both scans so the user can pick the right slug.
-- **Without a title** → show both tables, labelled, and ask which to delete via AskUserQuestion (multiSelect, since cleanup often covers several finished tasks).
+- **Without a title** → show both tables, labelled, and ask which to delete using the host’s available question mechanism (allow multiple selections when supported).
 
-Deletion is unrecoverable and the file is the user's own note, so confirm before removing: show each chosen handoff's slug, area (active or sealed) and Goal line and ask for confirmation via AskUserQuestion — unless the user already named the exact handoff in this same request AND its Goal clearly matches what they described.
+Deletion is unrecoverable and the file is the user's own note, so confirm before removing: show each chosen handoff's slug, area (active or sealed) and Goal line and ask for confirmation using the host’s available question mechanism — unless the user already named the exact handoff in this same request AND its Goal clearly matches what they described.
 
 If the user is deleting an **active** handoff because its task is over, mention once that `handoff:finish <slug>` (see **Command notation**) seals it while keeping the record. Mention it, then do what they asked.
 

@@ -84,9 +84,9 @@ A sealed note drops out of the list and `save` no longer appends to it. The reco
 # Parked           ← worth doing, but not required by this Goal
 ```
 
-> On update: **Progress · Next Steps are overwritten** with the latest state. **What Worked / Didn't Work / Parked accumulate** — past entries are never deleted.
+> On update: **Progress · Next Steps are overwritten** with the latest state. **What Worked / Didn't Work / Parked accumulate** distinct facts; duplicates merge and superseded conclusions retain the reason for the change.
 >
-> **Next Steps empty and only Parked left is the end point** — `save` and `resume` suggest `finish` there. Start a new note for any Parked item.
+> **Recorded results must support completion of the Goal with no required work remaining** before `save` and `resume` suggest `finish`. An empty list alone is not enough. Related follow-up notes include the predecessor’s path and inherited decisions.
 
 ---
 
@@ -121,6 +121,7 @@ A. Run `/reload-plugins`. If they're still missing, check with `/plugin list` an
 
 ## Tips
 
+- **Preserve handoff essentials.** Include user constraints, working locations, verification status, blockers and resume conditions where relevant.
 - **Make Next Steps concrete.** "Do more testing" is vague; "`tests/auth.test.ts`, POST cases" tells your future self exactly where to start.
 - **Log failures with reasons.** What Didn't Work is what prevents you from hitting the same wall twice.
 - **Separate parallel tasks.** `/handoff:save auction-state-machine` and `/handoff:save batch-php-migration` keep things clean when you're juggling multiple tracks.

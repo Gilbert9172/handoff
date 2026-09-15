@@ -23,24 +23,26 @@ This skill is never invoked automatically. `save` and `resume` may *mention* it;
 
 Run the shared script bundled with this plugin:
 
+
+(`${HANDOFF_PLUGIN_ROOT}` is this plugin's installation directory. Resolve `HANDOFF_PLUGIN_ROOT` to two directories above this skill’s base directory; a host-provided plugin root may be used if it points to this installation. Set this variable before running the examples. For questions, use the host’s available user-input tool or plain conversation, respecting any answer or authorization already given.)
+
 ```sh
-sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" dir        # active handoff directory
-sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" dir done   # the sealed archive
-sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" scan       # slug, updated, lines, status, first Goal paragraph
+sh "${HANDOFF_PLUGIN_ROOT}/scripts/handoffs.sh" dir        # active handoff directory
+sh "${HANDOFF_PLUGIN_ROOT}/scripts/handoffs.sh" dir done   # the sealed archive
+sh "${HANDOFF_PLUGIN_ROOT}/scripts/handoffs.sh" scan       # slug, updated, lines, status, first Goal paragraph
 ```
 
-(`${CLAUDE_PLUGIN_ROOT}` is this plugin's installation directory. If the variable is unavailable, the plugin root is two directories above this skill's base directory.)
 
 `scan` lists only **active** handoffs — sealed ones live under `done/` and are out of scope here.
 
 - **With a title argument** → the file is `$dir/HANDOFF-<title-slug>.md` (title lowercased, spaces → hyphens). If it doesn't exist, show the scan results so the user can pick the right slug.
-- **Without a title** → show the scan table and ask which to seal via AskUserQuestion. Ask even when only one handoff exists — sealing is a deliberate act, not a default.
+- **Without a title** → show the scan table and ask which to seal using the host’s available question mechanism. Ask even when only one handoff exists — sealing is a deliberate act, not a default.
 
 ## 1. Bring the record up to date
 
 Before showing anything, make sure the document reflects what actually happened. Refresh **Current Progress**, and append to **What Worked** / **What Didn't Work** if this session found anything new — merge the same way `handoff:save` does (see that skill's **Write the document** section). If nothing has happened since the last save, there's nothing to refresh.
 
-Leave **Next Steps** and **Parked** untouched. They exist to guide whoever resumes next, and once this skill finishes there is no "next" — `resume` and `list` stop seeing this file. Whatever is listed there becomes the historical record: Next Steps of what was left undone, Parked of what was deliberately kept out of this thread.
+Reconcile **Next Steps** against the actual final state. Preserve each recorded action but annotate it as completed, unfinished, or dropped (with a brief reason); mark unknown outcomes explicitly. Do not infer completion from the decision to seal. Keep **Parked** as deliberately excluded work. This leaves an accurate final record for related future handoffs.
 
 If the file is now over 200 lines (`scan`'s line-count column), compact it the same way `handoff:save --compact` does (see that skill's **Compacting** section), and tell the user what was condensed and the line-count change, same as that skill would. Do this regardless of how the file ends up being sealed — it's document hygiene, not a judgment about the work.
 
@@ -50,14 +52,14 @@ Read the file in full, then show the user, in their language:
 
 - **Goal** — what this handoff set out to do
 - **Current Progress** — where it actually got to
-- **Remaining Next Steps** — every item still listed, verbatim. If there are none, say so — an empty list means everything the Goal required is done, which is the normal way a handoff arrives here.
+- **Remaining Next Steps** — every unfinished or unknown item, verbatim, with completed and dropped items summarized separately. If none remain, say so without treating an empty list as proof that the Goal was reached.
 - **Parked** — one line, if any: these were set aside on purpose, so they are not unfinished work and don't count against sealing. Any of them can become a new handoff.
 
 Keep it short — this is context for one decision, not a report.
 
 ## 3. Ask how it ended
 
-Two outcomes, via AskUserQuestion:
+Use the outcome and reason if the user already supplied them; ask only for missing information using the host’s available question mechanism. Two outcomes:
 
 - **done** — the goal was reached
 - **abandoned** — the goal was dropped (a better approach was found, requirements changed, it turned out unnecessary)
@@ -70,7 +72,7 @@ If the user says neither really fits — the work is still live — stop and sug
 
 ## 4. Seal it
 
-Two edits, in this order:
+Before editing the status or moving the file, check whether the destination exists. If it does, do not overwrite it: ask whether to keep both (choose an unused date-suffixed name) or explicitly replace the old file. Then make two edits, in this order:
 
 **a. Record the status.** Insert a status line at the very top of the file, above the first heading, followed by a blank line:
 
@@ -93,13 +95,13 @@ Use today's date in `YYYY-MM-DD`. Keep the reason on the same line — the scan 
 **b. Move it to the archive.**
 
 ```sh
-mkdir -p "$(sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" dir done)"
-mv "$dir/HANDOFF-<slug>.md" "$dir/done/HANDOFF-<slug>.md"
+mkdir -p "$(sh "${HANDOFF_PLUGIN_ROOT}/scripts/handoffs.sh" dir done)"
+mv -n "$dir/HANDOFF-<slug>.md" "$dir/done/HANDOFF-<slug>.md"
 ```
 
 Sealing is the file's **location**, not a flag — that's why `resume` and `save` cannot pick a sealed handoff up by mistake. The status line is the human-readable record of why.
 
-If a file of the same name already exists in `done/`, do **not** overwrite it. Report the collision and ask the user whether to keep both (suffix the new one with the date) or replace the old one.
+Use the resolved destination in the move command; use `mv -n` unless replacement was explicitly authorized, and verify that the source no longer exists before reporting success.
 
 ## After sealing
 
@@ -108,7 +110,7 @@ Tell the user, in their language, with real values substituted — never the lit
 1. The **full, expanded** archive path of the sealed file.
 2. That it no longer appears in `handoff:list` or `handoff:resume`, and that `handoff:save` will start a **new** handoff rather than appending to this one.
 3. That the file still exists — `handoff:delete` removes it for good if they want it gone.
-4. **If Parked had items**, that each can be picked up as a new handoff with `handoff:save <title>` — one line, no question.
+4. **If Parked had items**, that each can be picked up as a new handoff with `handoff:save <title>`; the new note should reference this archive path and carry forward relevant decisions — one line, no question.
 
 ## If the move fails
 

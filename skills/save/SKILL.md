@@ -8,18 +8,19 @@ allowed-tools:
 
 ## The handoff family
 
-This skill **writes** handoffs. Listing, resuming, sealing, and deleting are sibling skills in this plugin. If the argument here is `list`, `resume`, `finish`, or `delete` (an old-style invocation), read and follow `${CLAUDE_PLUGIN_ROOT}/skills/<that-word>/SKILL.md` instead.
+This skill **writes** handoffs. Listing, resuming, sealing, and deleting are sibling skills in this plugin. If the argument here is `list`, `resume`, `finish`, or `delete` (an old-style invocation), read and follow `${HANDOFF_PLUGIN_ROOT}/skills/<that-word>/SKILL.md` instead.
 
 All skills share one script, so paths and scans are computed identically everywhere:
 
+(`${HANDOFF_PLUGIN_ROOT}` is this plugin's installation directory. Resolve `HANDOFF_PLUGIN_ROOT` to two directories above this skill’s base directory; a host-provided plugin root may be used if it points to this installation. Set this variable before running the examples. For questions, use the host’s available user-input tool or plain conversation, respecting any answer or authorization already given.)
+
 ```sh
-sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" dir        # this project's handoff directory
-sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" dir done   # the sealed archive
-sh "${CLAUDE_PLUGIN_ROOT}/scripts/handoffs.sh" scan       # one line per active handoff:
+sh "${HANDOFF_PLUGIN_ROOT}/scripts/handoffs.sh" dir        # this project's handoff directory
+sh "${HANDOFF_PLUGIN_ROOT}/scripts/handoffs.sh" dir done   # the sealed archive
+sh "${HANDOFF_PLUGIN_ROOT}/scripts/handoffs.sh" scan       # one line per active handoff:
                                                           # slug, updated, lines, status, first Goal paragraph
 ```
 
-(`${CLAUDE_PLUGIN_ROOT}` is this plugin's installation directory. If the variable is unavailable, the plugin root is two directories above this skill's base directory.)
 
 ## Arguments
 
@@ -48,9 +49,11 @@ Handoffs sealed by `finish` live under `$dir/done/`. They are closed: **never ap
 3. Otherwise, run `scan` and judge whether an existing handoff covers the **same work** you're handing off now (read the full file when the Goal summary isn't enough to tell):
    - Same work → update that file.
    - Clearly new work → create a new file with a slug derived from the new Goal.
-   - Genuinely unsure → ask via AskUserQuestion: update the closest existing handoff, or create a new one.
+   - Genuinely unsure → ask using the host’s available question mechanism: update the closest existing handoff, or create a new one.
 
 `scan` lists only active handoffs, so a sealed slug will never be offered as an update target. If the user explicitly names a title that turns out to be sealed (it exists under `done/` but not in `$dir`), don't reopen it — tell them it was sealed, and create a new handoff for the continuing work.
+
+When creating a related follow-up (including work continued from a sealed handoff), read the relevant predecessor and put its exact path, the decisions or constraints carried forward, and the new scope in **Current Progress**. Use a distinct slug for the new work. Do not copy its entire history or modify a sealed predecessor. If the predecessor is unavailable, record that gap rather than guessing its contents.
 
 ## What counts as "the same work"
 
@@ -72,7 +75,18 @@ Create or update the document with:
 - **Next Steps**: Only what is still required to reach the Goal
 - **Parked**: Things worth doing that the Goal does not require
 
-`handoff:finish` also uses the merge rules below (for Current Progress, What Worked, What Didn't Work) when it brings a handoff's record up to date right before sealing — it just leaves Next Steps and Parked alone, since sealing removes the reader those fields exist to guide.
+`handoff:finish` also uses the merge rules below (for Current Progress, What Worked, What Didn't Work) when it brings a handoff's record up to date right before sealing — it also reconciles the final outcome of Next Steps and preserves Parked as deliberately excluded work.
+
+### Information the next agent needs
+
+Use the existing six sections; include these details when relevant, without empty boilerplate:
+
+- **Goal**: completion criteria and user constraints that must survive the session change.
+- **Current Progress**: actual working location, relevant files/artifacts, key decisions and their reasons, and blockers. For code, include the branch/worktree and uncommitted work when needed to locate the actual changes. Distinguish implemented, verified (with the command or evidence), and unverified work.
+- **What Worked / What Didn't Work**: the conditions and reasons behind the result, so another agent knows whether the finding still applies.
+- **Next Steps**: concrete remaining actions; for waiting work, record what or whom it depends on and the condition for resuming.
+
+Preserve these facts when rewriting or compacting. Record missing or uncertain information explicitly; do not turn an assumption into a verified result. Do not copy credentials or session-only tool handles as if they were reusable access details.
 
 ### Goal is a state, not an activity
 
@@ -91,13 +105,14 @@ When you rewrite Next Steps, put each candidate through one question: *if this i
 
 Parked is the record of what was deliberately left out of this thread. It is not a backlog to drain — the user picks something up from it by starting a new handoff, not by promoting it into Next Steps. Only move a Parked item into Next Steps if it turns out the Goal actually can't be reached without it.
 
-**When Next Steps is empty and only Parked remains, the work this handoff describes is finished** — that's the signal for `handoff:finish` (see **After saving**). Don't invent steps to keep the list non-empty.
+**An empty Next Steps list is not proof of completion.** Suggest `handoff:finish` only when Current Progress supports the Goal’s completion criteria and no required work or verification remains. Otherwise record the unresolved question, blocker, or waiting condition without inventing tasks merely to fill the list.
 
 When updating an existing file, merge rather than blindly overwrite:
 
 - **Current Progress** and **Next Steps** reflect the latest state — rewrite them.
 - **Parked** accumulates — append, and drop an item only if it moved into Next Steps or was done elsewhere.
-- **What Worked** and **What Didn't Work** accumulate — append new findings, and don't drop old ones unless you are compacting (below).
+- **What Worked** and **What Didn't Work** accumulate — preserve distinct findings. On every save, merge repeated statements of the same fact across the accumulated sections without losing unique evidence, conditions, or reasons; repeated saves with no new facts should not add entries.
+- When a finding is corrected or superseded, mark the old conclusion and link it to its replacement with the reason. Retain the conditions of a past failure; it is not a permanent ban when those conditions have demonstrably changed. Broader history condensation still requires compacting (below).
 - **Goal** rarely changes — sharpen it when the end state becomes clearer, but leave it unless the task itself has shifted.
 
 ## Compacting
@@ -129,7 +144,7 @@ Tell the user these things, so the next conversation needs no remembered paths. 
 2. The resume command, with the real slug filled in and this host's command prefix (see **Command notation**) — e.g. `/handoff:resume auth-jwt-migration` on Claude Code, `$handoff:resume auth-jwt-migration` on Codex. Never leave the literal `<slug>` placeholder in.
 3. A note that continuing is best done in a **fresh session**: handoff exists precisely so an agent with clean context can pick up the work — so if they want to keep going, they should start a new session and run the resume command there rather than continuing in this one. Write it in the user's language with the real slug already substituted, e.g. (for slug `auth-jwt-migration`, on Claude Code): "save 완료 후 이어서 진행하실 경우, 새로운 세션에서 `/handoff:resume auth-jwt-migration` 로 이어서 해주세요."
 4. That `handoff:finish <slug>` seals this handoff when the work is completely over. One line, always — the user decides when that is, so this is a signpost, not a question.
-   **If Next Steps is now empty**, say so explicitly instead of the generic line: everything the Goal requires is done, so this is the moment to run `handoff:finish <slug>`; if Parked has items, add that any of them can become a new handoff. Still a signpost — never seal it yourself.
+   **If the Goal’s completion criteria are supported by the recorded results and no required work remains**, say this is the moment to run `handoff:finish <slug>`; if Parked has items, add that any of them can become a new handoff. If the next action is unknown or blocked, report that state instead of declaring completion. Still a signpost — never seal it yourself.
 5. **Only if the file now exceeds 200 lines** (the `scan` output's third column), mention its size and offer to condense it. Say it as an offer they can answer right there — don't block the save on it, and don't compact without being asked.
 
 Never ask a question that stops the user from leaving. `save` usually runs when context is nearly full and they're about to end the session; the save itself is already complete by this point.
