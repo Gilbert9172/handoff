@@ -64,17 +64,10 @@ case "${1:-}" in
     band3="${HANDOFF_BAND_3:-75}"
 
     # Claude transcripts do not expose a context-window field, but assistant
-    # messages do record the model. Keep the exceptional 1M models explicit;
-    # every other Claude model safely defaults to the standard 200K window.
+    # messages do record the model. Keep the exceptional 200K models explicit;
+    # new and otherwise unknown Claude models default to the current 1M window.
+    # Match the known version plus its dated IDs, not every future Haiku model.
     # HANDOFF_CONTEXT_LIMIT remains an escape hatch for custom deployments.
-    claude_model_context_map='claude-fable-5 1000000
-claude-mythos-5 1000000
-claude-opus-5 1000000
-claude-sonnet-5 1000000
-claude-opus-4-8 1000000
-claude-opus-4-7 1000000
-claude-opus-4-6 1000000
-claude-sonnet-4-6 1000000'
 
     # Context size = the last recorded usage entry. Claude and Codex transcripts use
     # different shapes for the same underlying value — see §9.4 of the design doc:
@@ -124,9 +117,11 @@ claude-sonnet-4-6 1000000'
         END { print model }'
       claude_model=$(printf '%s\n' "$tail_chunk" | awk "$model_awk")
       [ -n "$claude_model" ] || claude_model=$(awk "$model_awk" "$transcript")
-      detected_limit=$(printf '%s\n' "$claude_model_context_map" | awk -v model="$claude_model" \
-        '$1 == model { print $2; exit }')
-      limit="${HANDOFF_CONTEXT_LIMIT:-${detected_limit:-200000}}"
+      case "$claude_model" in
+        claude-haiku-4-5|claude-haiku-4-5-*) detected_limit=200000 ;;
+        *) detected_limit=1000000 ;;
+      esac
+      limit="${HANDOFF_CONTEXT_LIMIT:-$detected_limit}"
 
       usage_awk='
         /"input_tokens"/ {

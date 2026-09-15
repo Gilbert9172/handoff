@@ -247,7 +247,7 @@ pct=$((used * 100 / limit))
 
 세 밴드가 안내하는 커맨드의 접두사는 컨텍스트 한도 계산에 이미 쓰는 `codex_chunk` 판별(§9.4, `model_context_window` 유무)을 그대로 재사용해 자동으로 정한다 — Codex transcript면 `$`, Claude transcript면 `/`. `hooks/hooks.json`은 Claude adapter 전용이 아니라 Codex에도 그대로 등록된다는 게 실제 Codex 설치의 `config.toml`(`hooks.state."handoff@gilbert9172:hooks/hooks.json:user_prompt_submit:0:0"`)로 확인됐으므로, "Claude만 등록하니 `/`가 항상 맞다"던 이전 가정은 틀렸다. `HANDOFF_CMD_PREFIX`를 지정하면 이 자동 감지보다 우선한다. skill이 출력하는 안내 문구 쪽은 이 변수를 쓰지 않고 각 SKILL.md의 `## Command notation` 규칙(설계문서 §7.4)을 따른다.
 
-한도는 `HANDOFF_CONTEXT_LIMIT`로 조정하며 기본값은 1000000이다. Claude 경로에서는 훅이 사용량만 읽을 수 있고 세션의 실제 한도는 알 수 없어서 이 값을 고정 가정으로 쓴다. 200K 컨텍스트 세션에서 기본값을 그대로 두면 한도를 5배로 잡은 셈이라 밴드가 훨씬 늦게 뜨므로, `HANDOFF_CONTEXT_LIMIT=200000`으로 맞춰야 한다. Codex 경로는 앞서 본 대로 `model_context_window`를 읽으므로 이 설정이 필요 없다.
+Claude 경로의 한도는 마지막 assistant message의 모델명으로 판별한다. 200K인 Haiku 4.5(`claude-haiku-4-5`와 날짜 suffix가 붙은 ID)만 명시하고, 그 외 모델은 새로 추가된 이름까지 1M으로 계산한다. `HANDOFF_CONTEXT_LIMIT`를 지정하면 이 판별보다 우선하므로 custom deployment의 예외를 직접 조정할 수 있다. Codex 경로는 앞서 본 대로 transcript의 `model_context_window`를 읽는다.
 
 ### 세션당 한 번만 알리는 방법
 

@@ -32,11 +32,14 @@ run_hook() {
 output=$(run_hook "$fixtures/claude-opus-5.jsonl" opus-5)
 assert_contains 'known Claude 1M model' "$output" '40% 사용 중 (400000/1000000 토큰)'
 
+output=$(run_hook "$fixtures/claude-fable-5-1.jsonl" fable-5-1)
+assert_contains 'new Claude model defaults to 1M' "$output" '40% 사용 중 (400000/1000000 토큰)'
+
 output=$(run_hook "$fixtures/claude-haiku.jsonl" haiku)
-assert_contains 'unmapped Claude model defaults to 200K' "$output" '40% 사용 중 (80000/200000 토큰)'
+assert_contains 'known Claude 200K model stays at 200K' "$output" '40% 사용 중 (80000/200000 토큰)'
 
 output=$(HANDOFF_CONTEXT_LIMIT=200000 run_hook "$fixtures/claude-opus-5.jsonl" override)
-assert_contains 'explicit Claude limit overrides model map' "$output" '200% 사용 중 (400000/200000 토큰)'
+assert_contains 'explicit Claude limit overrides model detection' "$output" '200% 사용 중 (400000/200000 토큰)'
 
 output=$(run_hook "$fixtures/codex.jsonl" codex)
 assert_contains 'Codex transcript limit remains authoritative' "$output" '40% 사용 중 (40000/100000 토큰)'

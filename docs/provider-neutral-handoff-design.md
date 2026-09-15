@@ -416,7 +416,7 @@ Codex에서는 handoff skill이 현재 부모 세션의 모델을 그대로 사�
 (input_tokens + cache_read_input_tokens + cache_creation_input_tokens) / limit
 ```
 
-Claude transcript에는 컨텍스트 한도가 없으므로 마지막 assistant message의 `message.model`을 읽는다. 별도 `claude_model_context_map`에는 컨텍스트가 1M으로 고정된 모델만 명시하고, 맵에 없는 모델은 표준 200K로 계산한다. 사용자가 `HANDOFF_CONTEXT_LIMIT`를 지정한 경우에는 자동 감지값보다 우선한다.
+Claude transcript에는 컨텍스트 한도가 없으므로 마지막 assistant message의 `message.model`을 읽는다. 200K인 Haiku 4.5(날짜가 붙은 model ID 포함)만 명시적으로 판별하고, 그 외 모델은 1M으로 계산한다. 따라서 Fable 5.1처럼 새 모델이 추가되어도 200K로 잘못 축소되지 않는다. 사용자가 `HANDOFF_CONTEXT_LIMIT`를 지정한 경우에는 자동 감지값보다 우선한다.
 
 ### 9.3 Codex adapter
 

@@ -169,7 +169,7 @@ save ──▶ (작업 중, resume/save 반복) ──▶ finish ──▶ done/
 | `HANDOFF_CONTEXT_LIMIT` | 모델별 자동 감지 | 이 세션의 컨텍스트 윈도우 크기 override(토큰) |
 | `HANDOFF_CMD_PREFIX` | 자동 감지 (`/` 또는 `$`) | 훅 메시지에 쓸 커맨드 접두사. transcript 형식으로 Claude Code(`/`)와 Codex(`$`)를 자동 구분하며, 이 변수를 지정하면 그 값이 우선합니다 |
 
-> Claude transcript의 assistant message에서 모델을 읽어 1M 모델은 1,000,000으로 계산하고, 그 외 모델은 200,000으로 계산합니다. Codex는 transcript의 `model_context_window` 값을 사용합니다. 자동 감지가 맞지 않는 custom deployment에서는 `HANDOFF_CONTEXT_LIMIT`로 직접 지정할 수 있습니다.
+> Claude transcript의 assistant message에서 모델을 읽어 Haiku 4.5는 200,000으로 계산하고, 그 외 모델(새로 추가되어 아직 알려지지 않은 모델 포함)은 1,000,000으로 계산합니다. Codex는 transcript의 `model_context_window` 값을 사용합니다. 자동 감지가 맞지 않는 custom deployment에서는 `HANDOFF_CONTEXT_LIMIT`로 직접 지정할 수 있습니다.
 
 > 훅 변경은 플러그인 업데이트(`/plugin marketplace update gilbert9172`) 후 **새 세션**부터 적용됩니다.
 
