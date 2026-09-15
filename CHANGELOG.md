@@ -2,6 +2,14 @@
 
 이 저장소의 주요 변경 사항을 버전별로 기록합니다. [Keep a Changelog](https://keepachangelog.com/ko/1.1.0/) 형식을 따르며, `scripts/changelog.sh`가 커밋 로그에서 자동 생성합니다 — 이 파일을 직접 고치지 말고 스크립트를 다시 실행하세요.
 
+## [2.3.0] - 2026-09-15
+
+### Added
+- **save,resume,finish:** add Parked section so handoffs get an end point (`88a694a`)
+
+### Documentation
+- update changelog for 2.2.1 (`8aedc65`)
+
 ## [2.2.1] - 2026-09-15
 
 ### Added
